@@ -1,0 +1,148 @@
+/* --- GOOGLE FONTS IMPORT --- */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Source+Sans+3:wght@400;600;700&display=swap');
+
+/* --- BASE LAYOUT & RESET --- */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1a1512;
+  background-color: #f4f1ea;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* --- APP CONTAINER (Centers the UI and sets responsive width) --- */
+.app-container {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 30px 15px 120px 15px;
+}
+
+/* --- LUXURY SITE HEADER --- */
+.site-header {
+  text-align: center;
+  padding: 30px 20px;
+  border-radius: 10px;
+  margin-bottom: 25px;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #d4af37; /* Gold Accent */
+  margin: 0 0 6px 0;
+}
+
+.site-header h1 {
+  font-family: 'Merriweather', serif;
+  font-size: 34px;
+  margin: 0 0 6px 0;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.sub {
+  font-size: 15px;
+  color: #e0d8cc;
+  margin: 0 0 16px 0;
+  font-weight: 400;
+}
+
+.gold-rule {
+  height: 2px;
+  width: 60px;
+  background-color: #d4af37;
+  margin: 0 auto;
+  border-radius: 2px;
+}
+
+/* --- SECTION CARDS & WRAPPER --- */
+.section-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 26px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eaeaea;
+}
+
+.section-title {
+  font-family: 'Merriweather', serif;
+  font-size: 20px;
+  color: #1a1512;
+  margin: 0 0 18px 0;
+  border-bottom: 2px solid #900C3F; /* Burgundy Accent */
+  padding-bottom: 10px;
+}
+
+/* --- FORM ELEMENTS & BUILDER --- */
+.time-picker-container select,
+.options-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #dcd3c6;
+  font-size: 15px;
+  color: #1a1512;
+  background-color: #fcfcfb;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.time-picker-container select:focus,
+.options-group select:focus {
+  border-color: #900C3F;
+  box-shadow: 0 0 0 3px rgba(144, 12, 63, 0.1);
+}
+
+.options-group {
+  margin-bottom: 18px;
+}
+
+.options-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #333333;
+  cursor: pointer;
+}
+
+.options-group input[type="radio"],
+.options-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #900C3F;
+  cursor: pointer;
+}
+
+/* --- BUTTONS --- */
+.add-btn {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.add-btn:hover:not(:disabled) {
+  background-color: #332b25 !important;
+}
+
+.add-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}

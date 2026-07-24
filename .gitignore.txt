@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.local
+*.key
+*.secret
+
+# Build and cache directories
+dist/
+build/
+.firebase/
+.cache/
