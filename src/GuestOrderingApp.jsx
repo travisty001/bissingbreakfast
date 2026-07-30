@@ -38,7 +38,7 @@ export default function GuestOrderingApp() {
     // Menu Data (Fresh Fruit removed due to nationwide outbreak)
     const eggStyles = ['Scrambled', 'Over Easy', 'Over Medium', 'Over Hard', 'Poached', 'Hard Boiled'];
     const griddleTypes = ['Crepes', 'French Toast', 'Pancakes'];
-    const griddleFlavors = ['Plain', 'Strawberry', 'Banana', 'Hazelnut Spread'];
+    const griddleFlavors = ['Plain', 'Hazelnut Spread'];
     const sideOptions = ['Bacon', 'Hashbrowns', 'Whole Wheat Toast', 'White Toast'];
     const bevOptions = ['Orange Juice', 'Green Tea', 'Black Tea', 'Coffee'];
 

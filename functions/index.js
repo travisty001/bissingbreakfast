@@ -16,6 +16,22 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
+// SMS Area
+// Global variable to hold state (or tie this to your database)
+let smsNotificationsLive = true;
+
+// 1. GET Script: Check current SMS status
+app.get('/api/admin/sms-status', (req, res) => {
+  res.json({ enabled: smsNotificationsLive });
+});
+
+// 2. PUT Script: Toggle SMS on/off
+app.put('/api/admin/sms-toggle', (req, res) => {
+  const { enabled } = req.body;
+  smsNotificationsLive = !!enabled; // Force boolean
+  res.json({ success: true, enabled: smsNotificationsLive });
+});
+
 // Initialize SQLite (Read-Only Menu & Suites)
 const originalDbPath = path.resolve(__dirname, 'breakfast.db');
 const tempDbPath = path.join(os.tmpdir(), 'breakfast.db');

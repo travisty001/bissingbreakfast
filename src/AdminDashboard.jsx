@@ -1,295 +1,238 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-export default function KitchenReference() {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+// Swap to http://localhost:5000/bhbreakfastmenu/us-central1/api/api/admin if testing local backend
+const API_BASE = "https://api-peaufx4prq-uc.a.run.app/api/admin";
+const KITCHEN_PIN = "1879"; 
+
+export default function AdminDashboard() {
+  // --- MUTE / UNMUTE SCRIPTS STATE ---
+  const [smsEnabled, setSmsEnabled] = useState(true);
+  const [togglingSms, setTogglingSms] = useState(false);
+  
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const scrollTrackRef = useRef(null);
+
+  useEffect(() => {
+    fetchSmsStatus();
+    fetchCheatSheet();
+  }, [selectedDate]);
+
+  // =====================================================================
+  // RESTORED SMS SCRIPTS
+  // =====================================================================
+  const fetchSmsStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/sms-status`, {
+        headers: { "x-kitchen-pin": KITCHEN_PIN }
+      });
+      if (!res.ok) throw new Error("Server status: " + res.status);
+      const data = await res.json();
+      if (data && typeof data.enabled !== 'undefined') {
+        setSmsEnabled(data.enabled);
+      }
+    } catch (err) {
+      console.warn("Could not load SMS status:", err.message);
+    }
+  };
+
+  const handleToggleTestMode = async (e) => {
+    const isTestMode = e.target.checked;
+    const targetSmsState = !isTestMode; 
     
-    // Default to today's date formatted for the date picker YYYY-MM-DD
-    const today = new Date();
-    const defaultDate = today.toISOString().split('T')[0];
-    const [selectedDate, setSelectedDate] = useState(defaultDate);
+    setTogglingSms(true);
+    try {
+      const res = await fetch(`${API_BASE}/sms-toggle`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-kitchen-pin": KITCHEN_PIN
+        },
+        body: JSON.stringify({ enabled: targetSmsState })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setSmsEnabled(targetSmsState);
+        setSuccessMsg(`Cell notifications are now ${targetSmsState ? 'LIVE 🟢' : 'MUTED (Test Mode) 🔕'}.`);
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        alert("Failed to update SMS status.");
+      }
+    } catch (err) {
+      alert("Network error while updating SMS toggle.");
+    } finally {
+      setTogglingSms(false);
+    }
+  };
+  // =====================================================================
 
-    useEffect(() => {
-        setLoading(true);
-        fetch(`https://api-peaufx4prq-uc.a.run.app/api/admin/cheat-sheet?date=${selectedDate}`, {
-            headers: {
-                'x-kitchen-pin': '1879' // Required security PIN from your backend
-            }
-        })
-            .then(res => {
-                if (!res.ok) throw new Error("Failed to fetch orders from kitchen server.");
-                return res.json();
-            })
-            .then(data => {
-                const rawOrders = Array.isArray(data) ? data : (data.orders || data.data || []);
-                setOrders(rawOrders);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Admin fetch error:", err);
-                setError(err.message);
-                setLoading(false);
-            });
-    }, [selectedDate]);
+  const fetchCheatSheet = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch(`${API_BASE}/cheat-sheet?date=${selectedDate}`, {
+        headers: { "x-kitchen-pin": KITCHEN_PIN }
+      });
+      if (!res.ok) throw new Error("Server returned status " + res.status);
+      const data = await res.json();
+      setOrders(Array.isArray(data.orders) ? data.orders : []);
+    } catch (err) {
+      setErrorMsg("Could not connect to server.");
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Resolve suite names from room IDs
-    const getSuiteName = (roomVal) => {
-        if (!roomVal) return 'Bissing Suite';
-        const str = String(roomVal).toLowerCase();
-        if (str === '1' || str.includes('bissing')) return 'Bissing Suite';
-        if (str === '2' || str.includes('basgall')) return 'Basgall Suite';
-        if (str === '3' || str.includes('tea')) return 'Tea Rose Suite';
-        return String(roomVal);
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const groupedMap = safeOrders.reduce((acc, item) => {
+    if (!item) return acc;
+    const roomName = item?.room_name || `Suite ${item?.room_id || 1}`;
+    let time = item?.requested_time || '08:30 AM';
+    if (!time.toUpperCase().includes('M')) time = `${time} AM`;
+    const groupKey = `${roomName}___${time}`;
+    if (!acc[groupKey]) acc[groupKey] = { roomName, time, items: [] };
+    acc[groupKey].items.push(item);
+    return acc;
+  }, {});
+
+  const sortedGroups = Object.values(groupedMap).sort((a, b) => {
+    const parse = (t) => {
+      let [h, m] = t.trim().split(' ')[0].split(':').map(Number);
+      if (h === 12) h = 0;
+      if (t.toUpperCase().includes('PM')) h += 12;
+      return h * 60 + (m || 0);
     };
+    return parse(a.time) - parse(b.time);
+  });
 
-    // --- SMART PLATE PARSER FOR HIGH-SPEED KITCHEN SCANNABILITY ---
-    const parsePlateData = (rawText = '') => {
-        let text = String(rawText || '');
-        
-        // 1. Extract special request note if present
-        let specialNote = null;
-        if (text.includes('[Special Request:')) {
-            const parts = text.split('[Special Request:');
-            text = parts[0].trim();
-            specialNote = parts[1].replace(']', '').trim();
-        }
+  return (
+    <div className="min-h-screen bg-stone-950 text-stone-100 font-sans pb-12 w-full flex flex-col overflow-x-hidden">
+      
+      {/* HEADER */}
+      <header className="bg-black border-b-2 border-stone-800 px-6 py-4 sticky top-0 z-50 shadow-2xl flex flex-wrap justify-between items-center gap-4 shrink-0">
+        <div className="flex items-center space-x-4">
+          <span className="text-3xl pb-2">☕</span>
+          <div>
+            <div className="flex items-end gap-5">
+              <h1 className="font-serif text-xl md:text-2xl tracking-wider uppercase text-white font-black">
+                Kitchen Reference
+              </h1>
 
-        // 2. Check if it's Continental or standard text without side/drink delimiters
-        if (!text.includes(' - Sides:')) {
-            return {
-                main: text,
-                sides: null,
-                drinks: null,
-                specialNote
-            };
-        }
-
-        // 3. Split Main Course, Sides, and Drinks into distinct sections
-        const mainParts = text.split(' - Sides:');
-        const mainCourse = mainParts[0].trim();
-        
-        let sidesText = null;
-        let drinksText = null;
-
-        if (mainParts[1]) {
-            const sideDrinkParts = mainParts[1].split(' | Drinks:');
-            sidesText = sideDrinkParts[0].trim();
-            if (sideDrinkParts[1]) {
-                drinksText = sideDrinkParts[1].trim();
-            }
-        }
-
-        return {
-            main: mainCourse,
-            sides: (sidesText === 'No sides' || !sidesText) ? null : sidesText,
-            drinks: (drinksText === 'No beverages' || !drinksText) ? null : drinksText,
-            specialNote
-        };
-    };
-
-    // Group orders by Suite and Time so plates from the same room stay together
-    const groupedOrders = Object.values(
-        orders.reduce((acc, order) => {
-            const suite = getSuiteName(order.room_id || order.room_name || order.suite);
-            const time = order.requested_time || '08:30 AM';
-            const groupKey = `${suite}_${time}`;
-
-            if (!acc[groupKey]) {
-                acc[groupKey] = {
-                    suite: suite,
-                    time: time,
-                    generalNotes: order.dietary_notes || '',
-                    plates: []
-                };
-            }
-
-            if (order.order_items && Array.isArray(order.order_items)) {
-                acc[groupKey].plates.push(...order.order_items);
-            } else {
-                acc[groupKey].plates.push(order);
-            }
-            return acc;
-        }, {})
-    );
-
-    return (
-        <div style={{ padding: '40px 20px', maxWidth: '850px', margin: '0 auto', fontFamily: "'Source Sans 3', sans-serif" }}>
-            
-            {/* --- TOP ADMIN HEADER --- */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #900C3F', paddingBottom: '16px', marginBottom: '32px' }}>
-                <div>
-                    <span style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '12px', fontWeight: '700', color: '#d4af37', display: 'block', marginBottom: '4px' }}>
-                        Service Management
-                    </span>
-                    <h1 style={{ color: '#1a1512', margin: 0, fontFamily: "'Merriweather', serif", fontSize: '32px' }}>
-                        Kitchen Reference
-                    </h1>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', padding: '8px 14px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #dcd3c6' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#5c5249' }}>Service Date:</span>
-                    <input 
-                        type="date" 
-                        value={selectedDate} 
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '15px', fontWeight: 'bold', color: '#1a1512', outline: 'none', cursor: 'pointer' }}
-                    />
-                </div>
-            </div>
-
-            {loading && <div style={{ textAlign: 'center', padding: '60px', color: '#666', fontSize: '18px' }}>⏳ Loading kitchen service tickets...</div>}
-            {error && <div style={{ backgroundColor: '#fef5f5', border: '1px solid #fbd0d0', padding: '20px', borderRadius: '8px', color: '#900C3F', fontWeight: 'bold' }}>⚠️ Error loading orders: {error}</div>}
-
-            {!loading && !error && groupedOrders.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '60px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #eaeaea', color: '#777', fontStyle: 'italic', fontSize: '16px' }}>
-                    No breakfast orders found for {selectedDate}.
-                </div>
-            )}
-
-            {/* --- SUITE TICKET CARDS --- */}
-            {!loading && !error && groupedOrders.map((group, idx) => (
-                <div key={idx} style={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '10px',
-                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.07)',
-                    marginBottom: '26px',
-                    border: '1px solid #e2ded6',
-                    overflow: 'hidden'
-                }}>
+              {/* ========================================================= */}
+              {/* REALISTIC "NO SMS" STREET SIGN (OHIO STATE RED #BB0000)   */}
+              {/* ========================================================= */}
+              {!smsEnabled && (
+                <div className="flex flex-col items-center justify-start h-[75px] w-12 shrink-0 -mt-2 animate-bounce drop-shadow-2xl">
+                  {/* Sign Plate */}
+                  <div className="bg-stone-50 border-[3px] border-[#BB0000] rounded-[2px] w-full h-12 flex flex-col items-center justify-center shadow-md z-10 relative overflow-hidden">
+                    {/* Mounting Bolts */}
+                    <div className="absolute top-0.5 w-1 h-1 bg-stone-400 rounded-full shadow-inner border border-stone-500"></div>
+                    <div className="absolute bottom-0.5 w-1 h-1 bg-stone-400 rounded-full shadow-inner border border-stone-500"></div>
                     
-                    {/* CARD HEADER BAR (BURGUNDY & GOLD ACCENT) */}
-                    <div style={{ 
-                        backgroundColor: '#1a1512', 
-                        color: '#ffffff', 
-                        padding: '18px 24px', 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        borderBottom: '4px solid #d4af37' 
-                    }}>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '24px', fontFamily: "'Merriweather', serif", color: '#ffffff', letterSpacing: '0.5px' }}>
-                                {group.suite}
-                            </h2>
-                            <span style={{ fontSize: '13px', color: '#d4af37', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                {group.plates.length} {group.plates.length === 1 ? 'Plate Order' : 'Plate Orders'}
-                            </span>
-                        </div>
-                        <div style={{ 
-                            backgroundColor: '#900C3F', 
-                            color: '#ffffff', 
-                            padding: '10px 18px', 
-                            borderRadius: '6px', 
-                            fontWeight: 'bold', 
-                            fontSize: '18px', 
-                            letterSpacing: '0.5px',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
-                            border: '1px solid rgba(255,255,255,0.15)'
-                        }}>
-                            {group.time}
-                        </div>
+                    {/* Text */}
+                    <div className="text-[#BB0000] font-black text-center leading-none flex flex-col items-center z-10 select-none" style={{ fontVariant: 'small-caps' }}>
+                       <span className="text-[10px] tracking-widest block -mb-0.5">No</span>
+                       <span className="text-[14px] tracking-tighter block">SMS</span>
                     </div>
-
-                    {/* GENERAL ROOM NOTE BANNER (IF ANY) */}
-                    {group.generalNotes && group.generalNotes.trim() !== '' && (
-                        <div style={{ backgroundColor: '#fff8e6', color: '#856404', padding: '14px 24px', borderBottom: '1px solid #ffeeba', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '18px' }}>ℹ️</span>
-                            <div>
-                                <strong style={{ textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.5px', display: 'block' }}>General Suite Note / Dietary Restriction:</strong>
-                                <span style={{ fontWeight: '600' }}>{group.generalNotes}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STRUCTURED PLATES LIST */}
-                    <div style={{ padding: '24px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-                            {group.plates.map((plate, pIdx) => {
-                                const rawText = plate.item_name || plate.customization_note || plate.name || 'Continental / Standard Breakfast';
-                                const { main, sides, drinks, specialNote } = parsePlateData(rawText);
-
-                                return (
-                                    <div key={pIdx} style={{ 
-                                        backgroundColor: '#fcfbf9', 
-                                        border: '1px solid #eae6df', 
-                                        borderRadius: '8px', 
-                                        padding: '18px',
-                                        borderLeft: '6px solid #1a1512'
-                                    }}>
-                                        {/* PLATE TITLE / MAIN COURSE */}
-                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: (sides || drinks || specialNote) ? '12px' : '0' }}>
-                                            <span style={{ backgroundColor: '#d4af37', color: '#1a1512', fontWeight: 'bold', fontSize: '13px', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                                Plate {pIdx + 1}
-                                            </span>
-                                            <strong style={{ fontSize: '19px', color: '#1a1512', fontFamily: "'Merriweather', serif" }}>
-                                                {main}
-                                            </strong>
-                                        </div>
-
-                                        {/* INDENTED SIDES & DRINKS GRID */}
-                                        {(sides || drinks) && (
-                                            <div style={{ 
-                                                display: 'grid', 
-                                                gridTemplateColumns: sides && drinks ? '1fr 1fr' : '1fr', 
-                                                gap: '12px', 
-                                                backgroundColor: '#ffffff', 
-                                                padding: '12px 16px', 
-                                                borderRadius: '6px', 
-                                                border: '1px solid #f0ece3',
-                                                marginLeft: '4px',
-                                                marginBottom: specialNote ? '12px' : '0'
-                                            }}>
-                                                {sides && (
-                                                    <div>
-                                                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#777', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '2px' }}>
-                                                            Accompaniments / Sides
-                                                        </span>
-                                                        <span style={{ fontSize: '15px', color: '#333', fontWeight: '600' }}>
-                                                            🍴 {sides}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                {drinks && (
-                                                    <div>
-                                                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#777', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '2px' }}>
-                                                            Beverages
-                                                        </span>
-                                                        <span style={{ fontSize: '15px', color: '#333', fontWeight: '600' }}>
-                                                            ☕ {drinks}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* HIGHLIGHTED SPECIAL REQUEST CALLOUT BOX */}
-                                        {specialNote && (
-                                            <div style={{ 
-                                                backgroundColor: '#fef5f5', 
-                                                color: '#900C3F', 
-                                                padding: '10px 14px', 
-                                                borderRadius: '6px', 
-                                                fontSize: '14px', 
-                                                marginTop: (sides || drinks) ? '0' : '10px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                border: '1px solid #fbd0d0',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                <span style={{ fontSize: '16px' }}>⚠️</span>
-                                                <span>Special Request: {specialNote}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
+                  </div>
+                  {/* Metal U-Channel Post */}
+                  <div className="w-2 h-10 bg-gradient-to-r from-zinc-500 via-zinc-300 to-zinc-600 border-x border-zinc-500 shadow-inner -mt-1.5 relative z-0 flex flex-col items-center justify-start pt-3 gap-1">
+                      {/* Post Holes */}
+                      <div className="w-0.5 h-0.5 bg-zinc-800 rounded-full opacity-60"></div>
+                      <div className="w-0.5 h-0.5 bg-zinc-800 rounded-full opacity-60"></div>
+                  </div>
                 </div>
-            ))}
+              )}
+              {/* ========================================================= */}
 
+            </div>
+            <span className="text-xs uppercase tracking-widest text-amber-400 font-bold block mt-1">
+              Bissing House • Morning Plating Schedule
+            </span>
+          </div>
         </div>
-    );
+
+        {/* RESTORED SMS TOGGLE TICKER */}
+        <label className={`flex items-center gap-3 border-2 px-4 py-2 rounded-xl font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition select-none shadow-lg ${
+          !smsEnabled 
+            ? 'bg-rose-950 border-[#BB0000] text-[#BB0000] animate-pulse font-black shadow-rose-950/50' 
+            : 'bg-stone-900 border-emerald-500/80 text-emerald-400 hover:bg-stone-800'
+        }`}>
+          <input
+            type="checkbox"
+            checked={!smsEnabled}
+            onChange={handleToggleTestMode}
+            disabled={togglingSms}
+            className="w-4 h-4 cursor-pointer rounded"
+          />
+          <span>
+            {togglingSms 
+              ? '⏳ Updating...' 
+              : !smsEnabled 
+                ? '🔕 Test Mode (Muted)' 
+                : '🟢 Notifications Live'}
+          </span>
+        </label>
+      </header>
+
+      {/* TOOLBAR */}
+      <div className="max-w-6xl w-full mx-auto px-6 pt-6 shrink-0">
+        {successMsg && (
+          <div className="bg-emerald-950 border-2 border-emerald-600 text-emerald-200 font-bold px-6 py-4 rounded-xl mb-4 text-sm flex justify-between items-center shadow-lg">
+            <span>✓ {successMsg}</span>
+          </div>
+        )}
+        <div className="bg-stone-900 border-2 border-stone-800 rounded-2xl p-4 md:p-6 flex flex-wrap items-center gap-4 shadow-xl">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-black border-2 border-stone-700 rounded-xl px-4 py-2 text-white font-mono text-base font-bold focus:outline-none focus:border-amber-400"
+          />
+          <button
+            onClick={fetchCheatSheet}
+            className="px-4 py-2.5 bg-stone-800 hover:bg-stone-700 text-white text-xs font-mono font-bold uppercase tracking-widest rounded-xl border border-stone-600 shadow"
+          >
+            🔄 Refresh List
+          </button>
+        </div>
+      </div>
+
+      {/* HORIZONTAL CARDS */}
+      <main className="flex-1 flex flex-col justify-center mt-4 overflow-hidden">
+        {loading ? (
+          <div className="text-center py-20 text-amber-400 font-mono font-bold text-lg">Loading...</div>
+        ) : sortedGroups.length === 0 ? (
+          <div className="text-center text-stone-400 py-20">No Orders Scheduled</div>
+        ) : (
+          <div className="flex overflow-x-auto gap-8 py-8 px-[10vw] snap-x snap-mandatory scroll-smooth w-full no-scrollbar">
+            {sortedGroups.map((group, idx) => (
+              <div key={idx} className="w-[85vw] sm:w-[440px] md:w-[480px] shrink-0 snap-center bg-stone-900 border-2 border-stone-700 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+                <div className="bg-black border-b-2 border-stone-800 px-6 py-5 flex justify-between items-center">
+                  <h2 className="font-serif text-2xl text-white font-black tracking-wide uppercase">{group.roomName}</h2>
+                  <div className="bg-amber-400 text-black rounded-2xl px-5 py-2.5 text-center min-w-[130px]">
+                    <span className="block text-[10px] font-mono font-black uppercase tracking-widest">Time</span>
+                    <span className="text-2xl font-black font-mono tracking-tight">{group.time}</span>
+                  </div>
+                </div>
+                <div className="p-6 divide-y divide-stone-800 bg-stone-900/90 flex-1">
+                  {group.items.map((item, itemIdx) => (
+                    <div key={itemIdx} className="pt-4 first:pt-0 pb-4 text-white font-serif text-xl">
+                      {item?.item_name || 'Breakfast Plate'}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+
+    </div>
+  );
 }
