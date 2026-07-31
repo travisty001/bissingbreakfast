@@ -261,15 +261,18 @@ export default function GuestOrderingApp() {
                 <div className="app-container" style={{ width: '100%', maxWidth: '520px', padding: '20px' }}>
                     <header className="site-header" style={{ backgroundColor: 'rgba(26, 21, 18, 0.88)', backdropFilter: 'blur(8px)', padding: '40px 30px', borderRadius: '12px', border: '1px solid #d4af37', boxShadow: '0 12px 30px rgba(0,0,0,0.35)', margin: 0 }}>
                         <p className="eyebrow">Hays, Kansas</p>
-                        <h1 style={{ fontSize: '36px', margin: '0 0 8px 0', fontFamily: "'Merriweather', serif" }}>Bissing House</h1>
-                        <p className="sub" style={{ fontSize: '16px', color: '#e0d8cc', margin: '0 0 20px 0' }}>Morning Breakfast Service</p>
+                        
+                        {/* Stripped out the clashing inline font sizes to let index.css take over! */}
+                        <h1 style={{ margin: '0 0 8px 0', color: '#ffffff' }}>Bissing House</h1>
+                        <p className="sub" style={{ margin: '0 0 20px 0' }}>Morning Breakfast Service</p>
+                        
                         <div className="gold-rule" style={{ marginBottom: '25px' }}></div>
                         
                         <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.07)', padding: '28px 20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center' }}>
-                            <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#ffffff', margin: '0 0 14px 0' }}>
+                            <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#ffffff', margin: '0 0 14px 0', fontWeight: '300' }}>
                                 To access your morning menu and ensure your dining preferences are routed to the correct suite, please <strong>scan the QR code</strong> located inside your room.
                             </p>
-                            <p style={{ fontSize: '14px', color: '#d4af37', margin: 0, fontStyle: 'italic', fontWeight: 'bold' }}>
+                            <p style={{ fontSize: '14px', color: '#d4af37', margin: 0, fontStyle: 'italic', fontWeight: '600', letterSpacing: '0.5px' }}>
                                 We look forward to serving you breakfast!
                             </p>
                         </div>
@@ -278,7 +281,7 @@ export default function GuestOrderingApp() {
             </div>
         );
     }
-
+    
     // --- 2. LIVE CONFIRMATION SCREEN ---
     // Dynamically shifts to /dining.jpg upon successful order submission
     if (submittedOrder) {
