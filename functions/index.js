@@ -132,7 +132,7 @@ app.post('/api/orders', async (req, res) => {
                         '2143358780@tmomail.net',    // Casey
                         '7852596900@vtext.com'       // Travis
                     ],
-                    subject: 'Bissing House',
+                    subject: '',
                     text: `New Breakfast Order: ${roomName} for ${requested_time}.`
                 };
 
@@ -177,6 +177,7 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
                 if (order.items && Array.isArray(order.items)) {
                     order.items.forEach(item => {
                         cheatSheet.push({
+                            order_id: doc.id, // <-- ADDED THIS SO THE FRONTEND KNOWS WHAT TO DELETE
                             room_name: order.room_name || 'Unknown Room',
                             requested_time: order.requested_time || '00:00',
                             dietary_notes: order.dietary_notes || '',
@@ -196,6 +197,16 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
         });
 
         res.json({ success: true, orders: cheatSheet });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// <-- NEW DELETE ROUTE -->
+app.delete('/api/admin/orders/:id', async (req, res) => {
+    try {
+        await dbFirestore.collection('orders').doc(req.params.id).delete();
+        res.json({ success: true, message: "Order successfully deleted." });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
