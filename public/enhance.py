@@ -1,64 +1,53 @@
-from PIL import Image, ImageEnhance, ImageFilter
-import os
+import cv2
+from cv2 import dnn_superres
+import glob
 
-def compress_highlights(pixel_value):
-    """
-    If a pixel is normal (under 200), leave it alone.
-    If a pixel is glaring bright (over 200, like the window glare), 
-    compress its intensity so it doesn't blow out the image.
-    """
-    if pixel_value < 200:
-        return pixel_value
-    else:
-        return int(200 + (pixel_value - 200) * 0.4)
-
-def process_photo(input_path, output_path, is_bedroom=False):
+def upscale_all_images(model_path):
+    print("Loading AI model...")
+    # Initialize the super-resolution object
+    sr = dnn_superres.DnnSuperResImpl_create()
+    
+    # Load the model
     try:
-        img = Image.open(input_path)
-
-        # 1. Tame the Window Glare (Bedrooms Only)
-        if is_bedroom:
-            # Apply the compression curve to every pixel across RGB channels
-            img = img.point(compress_highlights)
-            
-            # Use a lighter touch on contrast for indoors to avoid crushing shadows
-            img = ImageEnhance.Contrast(img).enhance(1.05) 
-            img = ImageEnhance.Color(img).enhance(1.1)
-        else:
-            # Standard punchy enhancements for exterior/dining
-            img = ImageEnhance.Contrast(img).enhance(1.15)
-            img = ImageEnhance.Color(img).enhance(1.2)
-            img = ImageEnhance.Brightness(img).enhance(1.05)
-
-        # 2. Universal Sharpening
-        img = img.filter(ImageFilter.SHARPEN)
-
-        img.save(output_path, quality=95)
-        print(f"Successfully enhanced: {output_path}")
-
+        sr.readModel(model_path)
+        sr.setModel("edsr", 4)
     except Exception as e:
-        print(f"Error processing {input_path}: {e}")
+        print(f"Error loading model: {e}")
+        return
 
-# Separate your batches
-bedroom_images = ["basgall.jpg", "tearose.jpg", "bissing.jpg"]
-standard_images = ["house.jpg", "dining.jpg"]
+    # Find all .jpg files in the current folder
+    image_files = glob.glob("*.jpg")
+    
+    if not image_files:
+        print("No .jpg files found in this directory.")
+        return
 
-print("Starting custom batch enhancement...")
+    print(f"Found {len(image_files)} image(s) to process.")
 
-# Process the bright bedroom shots
-for file in bedroom_images:
-    if os.path.exists(file):
-        filename, ext = os.path.splitext(file)
-        process_photo(file, f"{filename}_enhanced{ext}", is_bedroom=True)
-    else:
-        print(f"Skipped: Could not find {file}.")
+    # Loop through each image and upscale it
+    for file_path in image_files:
+        # Skip images we have already upscaled to prevent endless loops
+        if "_4x" in file_path:
+            continue
+            
+        print(f"Upscaling {file_path}...")
+        image = cv2.imread(file_path)
+        
+        if image is None:
+            print(f"  -> Error: Could not read {file_path}. Skipping.")
+            continue
 
-# Process the standard shots
-for file in standard_images:
-    if os.path.exists(file):
-        filename, ext = os.path.splitext(file)
-        process_photo(file, f"{filename}_enhanced{ext}", is_bedroom=False)
-    else:
-        print(f"Skipped: Could not find {file}.")
+        # Upsample the image
+        result = sr.upsample(image)
 
-print("Enhancement complete!")
+        # Create a new filename (e.g., basgall.jpg -> basgall_4x.jpg)
+        output_path = file_path.replace(".jpg", "_4x.jpg")
+        
+        # Save the result
+        cv2.imwrite(output_path, result)
+        print(f"  -> Saved as {output_path}")
+
+    print("All finished!")
+
+# Run the function
+upscale_all_images('EDSR_x4.pb')

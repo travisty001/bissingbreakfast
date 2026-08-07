@@ -17,18 +17,36 @@ app.use(cors({ origin: true }));
 app.use(express.json());
 
 // =====================================================================
-// SMS TOGGLE STATE
+// SMS TOGGLE STATE (persisted in Firestore so it survives restarts)
 // =====================================================================
-let smsNotificationsLive = true;
+async function getSmsEnabled() {
+    try {
+        const doc = await dbFirestore.collection('settings').doc('sms').get();
+        if (doc.exists && typeof doc.data().enabled === 'boolean') {
+            return doc.data().enabled;
+        }
+    } catch (err) {
+        console.error("Could not read SMS settings:", err.message);
+    }
+    return true;
+}
 
-app.get('/api/admin/sms-status', (req, res) => {
-  res.json({ enabled: smsNotificationsLive });
+app.get('/api/admin/sms-status', async (req, res) => {
+    const enabled = await getSmsEnabled();
+    res.json({ enabled });
 });
 
-app.put('/api/admin/sms-toggle', (req, res) => {
-  const { enabled } = req.body;
-  smsNotificationsLive = !!enabled;
-  res.json({ success: true, enabled: smsNotificationsLive });
+app.put('/api/admin/sms-toggle', async (req, res) => {
+    const next = !!req.body.enabled;
+    try {
+        await dbFirestore.collection('settings').doc('sms').set({
+            enabled: next,
+            updated_at: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        res.json({ success: true, enabled: next });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // =====================================================================
@@ -115,7 +133,7 @@ app.post('/api/orders', async (req, res) => {
         const docRef = await dbFirestore.collection('orders').add(orderDoc);
 
         // --- SMS NOTIFICATION ENGINE ---
-        if (smsNotificationsLive) {
+        if (await getSmsEnabled()) {
             try {
                 const transporter = nodemailer.createTransport({
                     service: 'gmail',
@@ -155,13 +173,6 @@ app.post('/api/orders', async (req, res) => {
 // =====================================================================
 // ADMIN & KITCHEN ROUTES
 // =====================================================================
-app.use('/api/admin', (req, res, next) => {
-    const pin = req.headers['x-kitchen-pin'];
-    const validPin = process.env.KITCHEN_PIN || "1879"; 
-    if (pin === validPin) next();
-    else res.status(401).json({ success: false, error: "Unauthorized. Invalid Kitchen PIN." });
-});
-
 app.get('/api/admin/cheat-sheet', async (req, res) => {
     try {
         const { date } = req.query;
