@@ -85,6 +85,25 @@ app.get('/api/menu', async (req, res) => {
     }
 });
 
+// The room's current service-day order, used to prefill guest corrections.
+app.get('/api/orders/current', async (req, res) => {
+    try {
+        const room = Number(req.query.room_id);
+        const orderId = String(req.query.order_id || '');
+        const date = String(req.query.service_date || '');
+        if (![1, 2, 3].includes(room) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^[A-Za-z0-9]{10,80}$/.test(orderId)) {
+            return res.status(400).json({ success: false, error: 'Invalid room or service date.' });
+        }
+        const doc = await dbFirestore.collection('orders').doc(orderId).get();
+        const order = doc.exists ? doc.data() : null;
+        if (!order || order.status === 'archived' || Number(order.room_id) !== room || order.service_date !== date) {
+            return res.json({ success: true, order: null });
+        }
+        res.json({ success: true, order: { order_id: doc.id, ...order,
+            created_at: order.created_at?.toDate?.().toISOString() || null } });
+    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+});
+
 app.post('/api/orders', async (req, res) => {
     try {
         const { room_id, service_date, requested_time, guest_count, dietary_notes, order_items } = req.body;
@@ -130,28 +149,45 @@ app.post('/api/orders', async (req, res) => {
             created_at: admin.firestore.FieldValue.serverTimestamp()
         };
 
-        const docRef = await dbFirestore.collection('orders').add(orderDoc);
+        // One active order per room per breakfast service date. A correction replaces its
+        // plates rather than creating another kitchen card. Retain original placed time.
+        const existingSnap = await dbFirestore.collection('orders')
+            .where('service_date', '==', service_date).get();
+        const matching = existingSnap.docs.filter(d => d.data().status !== 'archived' &&
+            Number(d.data().room_id) === Number(room_id));
+        matching.sort((a,b) => (b.data().created_at?.toMillis?.() || 0) -
+            (a.data().created_at?.toMillis?.() || 0));
+        let docRef;
+        const updated = matching.length > 0;
+        if (updated) {
+            docRef = matching[0].ref;
+            delete orderDoc.created_at;
+            await docRef.update({ ...orderDoc,
+                updated_at: admin.firestore.FieldValue.serverTimestamp() });
+        } else {
+            docRef = await dbFirestore.collection('orders').add(orderDoc);
+        }
 
         // --- SMS NOTIFICATION ENGINE ---
-        if (await getSmsEnabled()) {
+        if (await getSmsEnabled() && process.env.SMS_GMAIL_USER && process.env.SMS_GMAIL_APP_PASSWORD) {
             try {
                 const transporter = nodemailer.createTransport({
                     service: 'gmail',
                     auth: {
-                        user: 'travisty.001@gmail.com', 
-                        pass: 'vukyiamzxorlhdwz'   
-                    }
+                        user: process.env.SMS_GMAIL_USER, 
+                        pass: process.env.SMS_GMAIL_APP_PASSWORD
+}
                 });
 
                 const mailOptions = {
-                    from: 'travisty.001@gmail.com',
+                    from: process.env.SMS_GMAIL_USER,
                     to: [
                         '7852593556@vtext.com',      // Michelle
                         '2143358780@tmomail.net',    // Casey
                         '7852596900@vtext.com'       // Travis
                     ],
                     subject: '',
-                    text: `New Breakfast Order: ${roomName} for ${requested_time}.`
+                    text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
                 };
 
                 transporter.sendMail(mailOptions, (err, info) => {
@@ -163,7 +199,7 @@ app.post('/api/orders', async (req, res) => {
             }
         }
 
-        res.json({ success: true, order_id: docRef.id });
+        res.json({ success: true, order_id: docRef.id, updated });
 
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -188,7 +224,10 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
                 if (order.items && Array.isArray(order.items)) {
                     order.items.forEach(item => {
                         cheatSheet.push({
-                            order_id: doc.id, // <-- ADDED THIS SO THE FRONTEND KNOWS WHAT TO DELETE
+                            order_id: doc.id,
+                            // Firestore timestamps are UTC instants. Send ISO 8601 for reliable local formatting.
+                            created_at: order.created_at?.toDate?.().toISOString() || null,
+                            updated_at: order.updated_at?.toDate?.().toISOString() || null,
                             room_name: order.room_name || 'Unknown Room',
                             requested_time: order.requested_time || '00:00',
                             dietary_notes: order.dietary_notes || '',

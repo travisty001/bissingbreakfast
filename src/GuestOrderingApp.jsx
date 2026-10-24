@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
 
+const TIME_SLOTS = ['08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', 'Continental'];
+
+const createEmptyPlate = (num) => ({
+    plateNumber: num,
+    plateType: '', // 'Egg' | 'Griddle'
+    eggStyle: 'Scrambled',
+    griddleType: 'Crepes',
+    griddleFlavor: 'Plain',
+    sides: [],
+    beverages: [],
+    notes: ''
+});
+
 export default function GuestOrderingApp() {
-    const [cart, setCart] = useState([]);
+    const [timeIndex, setTimeIndex] = useState(0);
+    const [guestCount, setGuestCount] = useState(1);
+    const [plates, setPlates] = useState([createEmptyPlate(1), createEmptyPlate(2)]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [requestedTime, setRequestedTime] = useState('');
-    const [dietaryNotes, setDietaryNotes] = useState('');
     const [submittedOrder, setSubmittedOrder] = useState(null);
-    const [isCartOpen, setIsCartOpen] = useState(false);
-    
-    // --- LIVE DAYTIME TRAVELER FORECAST STATE (NO HARDCODED FALLBACKS) ---
-    const [weather, setWeather] = useState({ 
+
+    // --- LIVE DAYTIME TRAVELER FORECAST STATE ---
+    const [weather, setWeather] = useState({
         locationName: '',
-        tempMax: null, 
-        desc: 'Connecting to live weather service...', 
-        icon: '⏳', 
+        tempMax: null,
+        desc: 'Connecting to live weather service...',
+        icon: '⏳',
         rainChance: null,
         windMax: null,
         uvIndex: null,
@@ -24,74 +36,111 @@ export default function GuestOrderingApp() {
         afternoonTemp: null,
         afternoonDesc: '',
         fetchTime: null,
-        isError: false 
+        isError: false
     });
 
-    // --- PLATE BUILDER STATE ---
-    const [plateType, setPlateType] = useState('');
-    const [eggStyle, setEggStyle] = useState('Scrambled'); // STRICTLY LOCKED TO SCRAMBLED
-    const [griddleType, setGriddleType] = useState('Crepes');
-    const [griddleFlavor, setGriddleFlavor] = useState('Plain');
-    const [sides, setSides] = useState([]);
-    const [beverages, setBeverages] = useState([]);
-
-    // Menu Data (Fresh Fruit removed due to nationwide outbreak)
     const eggStyles = ['Scrambled', 'Over Easy', 'Over Medium', 'Over Hard', 'Poached', 'Hard Boiled'];
     const griddleTypes = ['Crepes', 'French Toast', 'Pancakes'];
     const griddleFlavors = ['Plain', 'Hazelnut Spread'];
     const sideOptions = ['Bacon', 'Hashbrowns', 'Whole Wheat Toast', 'White Toast'];
-    const bevOptions = ['Orange Juice', 'Green Tea', 'Black Tea', 'Coffee'];
+    const bevOptions = ['Coffee', 'Orange Juice', 'Black Tea', 'Green Tea'];
 
-    // --- ROBUST CASE-INSENSITIVE ROUTING & DYNAMIC SUITE BACKGROUNDS ---
+    // --- SUITE ROUTING & BACKGROUNDS ---
     const searchParams = new URLSearchParams(window.location.search);
     const urlRoom = searchParams.get('room');
     const rawPath = window.location.pathname.split('/').pop();
-    const potentialRoom = urlRoom || rawPath || ''; 
-    const lowerRoom = potentialRoom.toLowerCase();
-    
-    // Check if a specific suite was actually requested in the URL
+    const lowerRoom = (urlRoom || rawPath || '').toLowerCase();
+
     const isRoomSpecified = lowerRoom.includes('tea') || lowerRoom.includes('basgall') || lowerRoom.includes('bissing');
 
     let roomName = 'Bissing';
-    let displayRoomName = 'Bissing';
+    let displayRoomName = 'BISSING SUITE';
     let bgImage = '/bissing.jpg';
-    
+
     if (lowerRoom.includes('tea')) {
         roomName = 'TeaRose';
-        displayRoomName = 'Tea Rose';
+        displayRoomName = 'TEA ROSE SUITE';
         bgImage = '/tearose.jpg';
     } else if (lowerRoom.includes('basgall')) {
         roomName = 'Basgall';
-        displayRoomName = 'Basgall';
+        displayRoomName = 'BASGALL SUITE';
         bgImage = '/basgall.jpg';
-    } else {
-        roomName = 'Bissing';
-        displayRoomName = 'Bissing';
-        bgImage = '/bissing.jpg';
     }
-    
+
+    const requestedTime = TIME_SLOTS[timeIndex];
     const isContinental = requestedTime === 'Continental';
 
-    // --- FETCH REAL NEXT-DAY FORECAST FOR DAYTIME VISITORS ---
+    const cycleTime = (dir) => {
+        setTimeIndex((prev) => (prev + dir + TIME_SLOTS.length) % TIME_SLOTS.length);
+    };
+
+    const [clockLeft, clockRight] = isContinental
+        ? ['CO', 'NT']
+        : requestedTime.replace(' AM', '').split(':');
+
+    const [existingOrderId, setExistingOrderId] = useState(null);
+    const [orderLookupDone, setOrderLookupDone] = useState(false);
+
+    // Rehydrate the room's order for tomorrow so changes do not create duplicate cards.
+    useEffect(() => {
+        if (!isRoomSpecified) return;
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const date = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+        const roomId = { Bissing: 1, Basgall: 2, TeaRose: 3 }[roomName];
+        let alive = true;
+        const storageKey = `bissing-order-${roomId}-${date}`;
+        const savedId = window.localStorage.getItem(storageKey);
+        if (!savedId) { setOrderLookupDone(true); return; }
+        fetch(`https://api-peaufx4prq-uc.a.run.app/api/orders/current?room_id=${roomId}&service_date=${date}&order_id=${encodeURIComponent(savedId)}`)
+            .then(r => { if (!r.ok) throw new Error('Lookup failed'); return r.json(); })
+            .then(data => {
+                if (!alive || !data.order) return;
+                const order = data.order;
+                setExistingOrderId(order.order_id);
+                const idx = TIME_SLOTS.indexOf(order.requested_time);
+                if (idx >= 0) setTimeIndex(idx);
+                if (idx === TIME_SLOTS.indexOf('Continental')) return;
+                const saved = (order.items || []).slice(0, 2).map((item, i) => {
+                    const raw = item.item_name || '';
+                    const main = raw.split(' - Sides: ')[0];
+                    const eggMatch = main.match(/^Egg Breakfast \((.*?)\)/i);
+                    const isGriddle = !eggMatch;
+                    const griddleType = ['Crepes', 'French Toast', 'Pancakes'].find(t => main.includes(t)) || 'Crepes';
+                    const sides = (raw.match(/Sides: (.*?) \| Drinks:/)?.[1] || '').split(', ').filter(x => x && x !== 'No sides');
+                    const beverages = (raw.match(/Drinks: (.*?)(?: \[Special Request:|$)/)?.[1] || '').split(', ').filter(x => x && x !== 'No beverages');
+                    return { ...createEmptyPlate(i + 1), plateType: isGriddle ? 'Griddle' : 'Egg',
+                        eggStyle: eggMatch?.[1] || 'Scrambled', griddleType,
+                        griddleFlavor: main.startsWith('Hazelnut Spread') ? 'Hazelnut Spread' : 'Plain',
+                        sides, beverages, notes: raw.match(/\[Special Request: (.*?)\]/)?.[1] || '' };
+                });
+                if (saved.length) {
+                    setGuestCount(saved.length);
+                    setPlates([...saved, ...[1,2].slice(saved.length).map(i => createEmptyPlate(i+1))]);
+                }
+            })
+            .catch(err => console.warn('Existing-order lookup unavailable:', err))
+            .finally(() => { if (alive) setOrderLookupDone(true); });
+        return () => { alive = false; };
+    }, [roomName, isRoomSpecified]);
+
+    // --- FETCH REAL NEXT-DAY FORECAST ---
     useEffect(() => {
         if (submittedOrder) {
-            const API_KEY = 'e0ed10ab10774f0cb51224830261704'; 
-            const WEATHER_URL = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=67601&days=2&aqi=no&alerts=no`; 
-            
+            const API_KEY = 'e0ed10ab10774f0cb51224830261704';
+            const WEATHER_URL = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=67601&days=2&aqi=no&alerts=no`;
+
             fetch(WEATHER_URL)
                 .then(async res => {
-                    if (!res.ok) {
-                        const errData = await res.json().catch(() => ({}));
-                        throw new Error(errData.error?.message || `HTTP Error ${res.status}`);
-                    }
+                    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
                     return res.json();
                 })
                 .then(data => {
-                    if (data.forecast && data.forecast.forecastday && data.forecast.forecastday[1]) {
+                    if (data.forecast?.forecastday?.[1]) {
                         const tomorrowDay = data.forecast.forecastday[1].day;
                         const hours = data.forecast.forecastday[1].hour || [];
                         const conditionText = tomorrowDay.condition.text.toLowerCase();
-                        
+
                         let weatherIcon = '🌤️';
                         if (conditionText.includes('sun') || conditionText.includes('clear')) weatherIcon = '☀️';
                         if (conditionText.includes('cloud') || conditionText.includes('overcast')) weatherIcon = '☁️';
@@ -102,9 +151,7 @@ export default function GuestOrderingApp() {
                         const morning = hours[9] || hours[8];
                         const noon = hours[12];
                         const afternoon = hours[15] || hours[16];
-
-                        const now = new Date();
-                        const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                         setWeather({
                             locationName: data.location.name || 'Hays, KS',
@@ -123,113 +170,96 @@ export default function GuestOrderingApp() {
                             fetchTime: timestamp,
                             isError: false
                         });
-                    } else {
-                        throw new Error("API returned success, but tomorrow's forecast layer was missing.");
                     }
                 })
                 .catch(err => {
-                    console.error("Weather forecast fetch failed:", err);
-                    setWeather({ 
+                    setWeather(prev => ({
+                        ...prev,
                         locationName: 'Hays, KS',
-                        tempMax: null, 
-                        desc: `Live Forecast Unavailable (${err.message})`, 
-                        icon: '⚠️', 
-                        rainChance: null,
-                        windMax: null,
-                        uvIndex: null,
-                        morningTemp: null,
-                        morningDesc: '',
-                        noonTemp: null,
-                        noonDesc: '',
-                        afternoonTemp: null,
-                        afternoonDesc: '',
-                        fetchTime: null,
-                        isError: true 
-                    });
+                        desc: `Live Forecast Unavailable (${err.message})`,
+                        icon: '⚠️',
+                        isError: true
+                    }));
                 });
         }
     }, [submittedOrder]);
 
-    const toggleArrayItem = (array, setArray, item) => {
-        if (array.includes(item)) {
-            setArray(array.filter(i => i !== item));
-        } else {
-            setArray([...array, item]);
-        }
+    const updatePlate = (index, updater) => {
+        setPlates(prev => prev.map((plate, i) => (i === index ? updater(plate) : plate)));
     };
 
-    const handleAddPlate = () => {
-        if (!plateType) {
-            alert("Please select a Main Course (Egg or Griddle Breakfast).");
-            return;
-        }
+    const togglePlateArrayItem = (index, field, item) => {
+        updatePlate(index, plate => {
+            const list = plate[field];
+            let filtered = list;
+            if (item === 'White Toast') filtered = list.filter(i => i !== 'Whole Wheat Toast');
+            if (item === 'Whole Wheat Toast') filtered = list.filter(i => i !== 'White Toast');
 
-        let itemName = '';
-        if (plateType === 'Egg') {
-            itemName = `Egg Breakfast (${eggStyle})`;
-        } else {
-            itemName = `${griddleFlavor} ${griddleType}`;
-        }
-
-        const sidesText = sides.length > 0 ? sides.join(', ') : 'No sides';
-        const bevText = beverages.length > 0 ? beverages.join(', ') : 'No beverages';
-        const details = `Sides: ${sidesText} | Drinks: ${bevText}`;
-
-        setCart([...cart, { 
-            id: Date.now(), 
-            name: itemName, 
-            details: details,
-            plateNote: dietaryNotes.trim()
-        }]);
-        
-        // --- FULL STATE RESET FOR NEXT PLATE BUILD ---
-        setPlateType('');
-        setEggStyle('Scrambled');
-        setGriddleType('Crepes');
-        setGriddleFlavor('Plain');
-        setSides([]);
-        setBeverages([]);
-        setDietaryNotes(''); 
-        alert(`${itemName} added to order! Another plate can now be built, or the order can be submitted.`);
+            const next = filtered.includes(item)
+                ? filtered.filter(i => i !== item)
+                : [...filtered, item];
+            return { ...plate, [field]: next };
+        });
     };
 
-    const removeFromCart = (indexToRemove) => {
-        const newCart = cart.filter((_, index) => index !== indexToRemove);
-        setCart(newCart);
-        if (newCart.length === 0) setIsCartOpen(false); 
-    };
+    const activePlates = plates.slice(0, guestCount);
+    const isOrderReady = isContinental || activePlates.every(p => p.plateType === 'Egg' || p.plateType === 'Griddle');
 
     const handleSubmitOrder = () => {
-        if (!requestedTime) { alert("Please select a delivery time before sending the order."); return; }
-        if (!isContinental && cart.length === 0) { alert("Please add at least one plate to the order."); return; }
-        
+        if (!isContinental) {
+            for (let i = 0; i < activePlates.length; i++) {
+                if (!activePlates[i].plateType) {
+                    alert(`Please select Eggs or Griddle Breakfast for ${guestCount === 1 ? 'your plate' : `Plate \${i + 1}`}.`);
+                    return;
+                }
+            }
+        }
+
         setIsSubmitting(true);
-        const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
         const serviceDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
         const roomMapping = { 'Bissing': 1, 'Basgall': 2, 'TeaRose': 3, 'Tearose': 3, 'tearose': 3 };
 
+        const builtPlates = activePlates.map(p => {
+            const itemName = p.plateType === 'Egg'
+                ? `Egg Breakfast (${p.eggStyle})`
+                : `${p.griddleFlavor} ${p.griddleType}`;
+            const sidesText = p.sides.length > 0 ? p.sides.join(', ') : 'No sides';
+            const bevText = p.beverages.length > 0 ? p.beverages.join(', ') : 'No beverages';
+            const details = `Sides: ${sidesText} | Drinks: ${bevText}`;
+            const plateNote = p.notes.trim();
+
+            return {
+                name: itemName,
+                details,
+                plateNote,
+                customization_note: plateNote
+                    ? `${itemName} - ${details} [Special Request: ${plateNote}]`
+                    : `${itemName} - ${details}`
+            };
+        });
+
         const finalItems = isContinental ? [{
-            menu_item_id: 1, 
+            menu_item_id: 1,
             quantity: 1,
             customization_note: "Continental Setup - Guest notified to check dining room and fridge."
-        }] : cart.map(item => ({
-            menu_item_id: 1, 
+        }] : builtPlates.map(item => ({
+            menu_item_id: 1,
             quantity: 1,
-            customization_note: item.plateNote ? 
-                `${item.name} - ${item.details} [Special Request: ${item.plateNote}]` : 
-                `${item.name} - ${item.details}`
+            customization_note: item.customization_note
         }));
 
         fetch('https://api-peaufx4prq-uc.a.run.app/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                room_id: roomMapping[roomName] || 1, 
+                room_id: roomMapping[roomName] || 1,
                 service_date: serviceDate,
-                requested_time: requestedTime, 
-                guest_count: isContinental ? 1 : cart.length,
-                dietary_notes: "", 
+                requested_time: requestedTime,
+                guest_count: isContinental ? 1 : activePlates.length,
+                dietary_notes: "",
                 order_items: finalItems
             })
         })
@@ -240,346 +270,681 @@ export default function GuestOrderingApp() {
         .then(data => {
             setIsSubmitting(false);
             if (data.success) {
-                setSubmittedOrder({ time: requestedTime, items: [...cart] });
-                setCart([]);
-                setDietaryNotes('');
-                setIsCartOpen(false);
+                setExistingOrderId(data.order_id || existingOrderId);
+                if (data.order_id) window.localStorage.setItem(`bissing-order-${roomMapping[roomName]}-${serviceDate}`, data.order_id);
+                setSubmittedOrder({ time: requestedTime, items: builtPlates });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         })
         .catch(err => {
             setIsSubmitting(false);
-            alert("Error sending order to the kitchen. Please check the Express terminal.");
+            alert("Error sending order to the kitchen. Please try again.");
             console.error("Order error:", err);
         });
     };
 
-    // --- 1. WELCOME & QR INSTRUCTION LANDING PAGE ---
+    // --- SHARED VISUAL STYLES ---
+    const pageWrapperStyle = (bg) => ({
+        backgroundImage: `linear-gradient(rgba(8, 10, 15, 0.58), rgba(8, 10, 15, 0.72)), url('${bg}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        minHeight: '100vh',
+        width: '100vw',
+        margin: 0,
+        padding: '28px 16px 80px 16px',
+        boxSizing: 'border-box',
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    });
+
+    const columnStyle = {
+        maxWidth: '580px',
+        margin: '0 auto'
+    };
+
+    const frostedHeaderStyle = {
+        backgroundColor: 'rgba(68, 58, 50, 0.52)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255, 255, 255, 0.16)',
+        borderRadius: '4px',
+        padding: '32px 24px 28px 24px',
+        textAlign: 'center',
+        marginBottom: '18px',
+        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.55)'
+    };
+
+    const darkNavyShellStyle = {
+        backgroundColor: 'rgba(10, 15, 26, 0.94)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.09)',
+        borderRadius: '4px',
+        padding: '18px',
+        boxShadow: '0 24px 55px rgba(0, 0, 0, 0.75)',
+        color: '#f8fafc'
+    };
+
+    const innerNavyCardStyle = {
+        backgroundColor: 'rgba(16, 23, 38, 0.9)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '6px',
+        padding: '24px 22px',
+        marginBottom: '16px'
+    };
+
+    const sectionLabelStyle = {
+        color: '#d4af37',
+        display: 'block',
+        marginBottom: '12px',
+        textTransform: 'uppercase',
+        letterSpacing: '1.2px',
+        fontSize: '11px',
+        fontWeight: '700'
+    };
+
+    const mainCourseCardStyle = (isSelected) => ({
+        textAlign: 'left',
+        padding: '16px 18px',
+        borderRadius: '8px',
+        backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.14)' : 'rgba(11, 17, 30, 0.85)',
+        border: isSelected ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
+        color: '#ffffff',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        boxShadow: isSelected ? '0 0 18px rgba(212, 175, 55, 0.18)' : 'none'
+    });
+
+    const checkboxCardStyle = (isChecked) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '13px 16px',
+        borderRadius: '8px',
+        backgroundColor: isChecked ? 'rgba(212, 175, 55, 0.14)' : 'rgba(11, 17, 30, 0.85)',
+        border: isChecked ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
+        color: '#ffffff',
+        fontSize: '14px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        textAlign: 'left',
+        transition: 'all 0.15s ease'
+    });
+
+    // --- 1. WELCOME & QR LANDING PAGE ---
     if (!isRoomSpecified && !submittedOrder) {
         return (
-            <div style={{ backgroundImage: "url('/house.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', width: '100vw', margin: 0, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div className="app-container" style={{ width: '100%', maxWidth: '520px', padding: '20px' }}>
-                    <header className="site-header" style={{ backgroundColor: 'rgba(26, 21, 18, 0.88)', backdropFilter: 'blur(8px)', padding: '40px 30px', borderRadius: '12px', border: '1px solid #d4af37', boxShadow: '0 12px 30px rgba(0,0,0,0.35)', margin: 0 }}>
-                        <p className="eyebrow">Hays, Kansas</p>
-                        <h1 style={{ margin: '0 0 8px 0', color: '#ffffff' }}>Bissing House</h1>
-                        <p className="sub" style={{ margin: '0 0 20px 0' }}>Morning Breakfast Service</p>
-                        
-                        <div className="gold-rule" style={{ marginBottom: '25px' }}></div>
-                        
-                        <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.07)', padding: '28px 20px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.12)', textAlign: 'center' }}>
-                            <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#ffffff', margin: '0 0 14px 0', fontWeight: '300' }}>
-                                To access your morning menu and ensure your dining preferences are routed to the correct suite, please <strong>scan the QR code</strong> located inside your room.
-                            </p>
-                            <p style={{ fontSize: '14px', color: '#d4af37', margin: 0, fontStyle: 'italic', fontWeight: '600', letterSpacing: '0.5px' }}>
-                                We look forward to serving you breakfast!
-                            </p>
-                        </div>
+            <div style={pageWrapperStyle('/house.jpg')}>
+                <div style={columnStyle}>
+                    <header style={frostedHeaderStyle}>
+                        <img
+                            src="/Bissing-Logo-Lg-300x300.png"
+                            alt="Bissing House"
+                            style={{ width: '88px', height: '88px', borderRadius: '50%', marginBottom: '14px', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
+                        />
+                        <p style={{ color: '#d4af37', fontSize: '11px', letterSpacing: '2.5px', textTransform: 'uppercase', margin: '0 0 8px 0', fontWeight: '700' }}>
+                            HAYS, KANSAS &nbsp;•&nbsp; EST. 1908
+                        </p>
+                        <h1 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '36px', color: '#ffffff', margin: '0 0 16px 0', fontWeight: '700' }}>
+                            Bissing House
+                        </h1>
+                        <p style={{ color: '#e2e8f0', fontSize: '15px', lineHeight: '1.6', margin: 0 }}>
+                            Please scan the QR code inside your suite to access your morning breakfast menu.
+                        </p>
                     </header>
                 </div>
             </div>
         );
     }
-    
-    // --- 2. LIVE CONFIRMATION SCREEN ---
+
+    // --- 2. CONFIRMATION & WEATHER SCREEN ---
     if (submittedOrder) {
         return (
-            <div style={{ backgroundImage: "url('/dining.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', width: '100vw', margin: 0, padding: 0, overflowY: 'auto' }}>
-                <div className="app-container" style={{ padding: '40px 20px', maxWidth: '600px', margin: '0 auto' }}>
-                    
-                    <div className="section-card" style={{ textAlign: 'center', padding: '40px', backgroundColor: 'rgba(26, 21, 18, 0.85)', backdropFilter: 'blur(8px)', borderRadius: '8px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid rgba(204, 163, 82, 0.3)' }}>
-                        <h2 style={{ color: '#d4af37', fontFamily: "'Merriweather', serif", marginBottom: '15px' }}>Order Confirmed!</h2>
-                        <p style={{ color: '#e5e5e5', fontSize: '16px', margin: 0 }}>The kitchen has received the breakfast order for {submittedOrder.time}.</p>
-                    </div>
+            <div style={pageWrapperStyle('/dining.jpg')}>
+                <div style={columnStyle}>
+                    <header style={frostedHeaderStyle}>
+                        <img
+                            src="/Bissing-Logo-Lg-300x300.png"
+                            alt="Bissing House"
+                            style={{ width: '84px', height: '84px', borderRadius: '50%', marginBottom: '12px' }}
+                        />
+                        <p style={{ color: '#d4af37', fontSize: '11px', letterSpacing: '2.5px', textTransform: 'uppercase', margin: '0 0 6px 0', fontWeight: '700' }}>
+                            HAYS, KANSAS &nbsp;•&nbsp; EST. 1908
+                        </p>
+                        <h1 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '34px', color: '#ffffff', margin: '0 0 12px 0' }}>
+                            Bissing House
+                        </h1>
+                        <span style={{ display: 'inline-block', backgroundColor: 'rgba(88, 44, 77, 0.75)', border: '1px solid rgba(255,255,255,0.18)', color: '#f8fafc', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', padding: '6px 16px', borderRadius: '999px' }}>
+                            {displayRoomName}
+                        </span>
+                    </header>
 
-                    <div className="section-card" style={{ backgroundColor: 'rgba(26, 21, 18, 0.85)', backdropFilter: 'blur(8px)', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid rgba(204, 163, 82, 0.3)' }}>
-                        <h3 style={{ color: '#ffffff', fontFamily: "'Merriweather', serif", borderBottom: '2px solid #d4af37', paddingBottom: '10px', marginBottom: '20px', marginTop: 0 }}>Tomorrow's Daytime Itinerary Forecast</h3>
-                        
-                        <div style={{ marginBottom: '25px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: (weather.isError || weather.tempMax === null) ? '0' : '15px' }}>
-                                <div style={{ fontSize: '46px' }}>{weather.icon}</div>
-                                <div style={{ textAlign: 'left' }}>
-                                    <strong style={{ display: 'block', fontSize: '18px', color: '#ffffff' }}>
-                                        {weather.isError ? "Weather Notice" : `${weather.locationName} — Tomorrow's Conditions`}
-                                    </strong>
-                                    <span style={{ color: weather.isError ? '#fca5a5' : '#dcd3c6', fontSize: '15px', fontWeight: weather.isError ? 'bold' : 'normal', display: 'block' }}>
-                                        {weather.tempMax !== null ? `${weather.desc} — Expected Daytime High: ${weather.tempMax}°F` : weather.desc}
-                                    </span>
-                                    {weather.fetchTime && (
-                                        <span style={{ color: '#999', fontSize: '11px', display: 'block', marginTop: '4px' }}>
-                                            Live data retrieved at {weather.fetchTime}
-                                        </span>
-                                    )}
+                    <div style={darkNavyShellStyle}>
+                        <div style={{ ...innerNavyCardStyle, textAlign: 'center', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
+                            <h2 style={{ color: '#d4af37', fontFamily: "Georgia, 'Merriweather', serif", marginTop: 0, marginBottom: '10px', fontSize: '26px' }}>
+                                Order Confirmed
+                            </h2>
+                            <p style={{ color: '#cbd5e1', fontSize: '15px', margin: '0 0 18px 0' }}>
+                                Your breakfast order is scheduled for <strong style={{ color: '#ffffff' }}>{submittedOrder.time}</strong>.
+                            </p>
+
+                            {submittedOrder.items && submittedOrder.items.length > 0 && (
+                                <div style={{ textAlign: 'left', backgroundColor: 'rgba(8, 12, 22, 0.85)', padding: '16px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                    {submittedOrder.items.map((item, idx) => (
+                                        <div key={idx} style={{ padding: '8px 0', borderBottom: idx < submittedOrder.items.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+                                            <strong style={{ color: '#d4af37', display: 'block', fontSize: '14px' }}>
+                                                Plate {idx + 1}: {item.name}
+                                            </strong>
+                                            <span style={{ color: '#cbd5e1', fontSize: '13px' }}>{item.details}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-
-                            {!weather.isError && weather.tempMax !== null && (
-                                <>
-                                    {weather.morningTemp !== null && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '15px', textAlign: 'center', fontSize: '13px', color: '#e5e5e5' }}>
-                                            <div>
-                                                <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px', textTransform: 'uppercase' }}>9:00 AM (Morning)</strong>
-                                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{weather.morningTemp}°F</span>
-                                                <span style={{ display: 'block', fontSize: '11px', color: '#a8a29e' }}>{weather.morningDesc}</span>
-                                            </div>
-                                            <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
-                                                <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px', textTransform: 'uppercase' }}>12:00 PM (Noon)</strong>
-                                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{weather.noonTemp}°F</span>
-                                                <span style={{ display: 'block', fontSize: '11px', color: '#a8a29e' }}>{weather.noonDesc}</span>
-                                            </div>
-                                            <div>
-                                                <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px', textTransform: 'uppercase' }}>3:00 PM (Afternoon)</strong>
-                                                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{weather.afternoonTemp}°F</span>
-                                                <span style={{ display: 'block', fontSize: '11px', color: '#a8a29e' }}>{weather.afternoonDesc}</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px', fontSize: '13px', color: '#dcd3c6' }}>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <strong>🌧️ Rain Chance:</strong> <span style={{ color: weather.rainChance > 30 ? '#93c5fd' : 'inherit', fontWeight: weather.rainChance > 30 ? 'bold' : 'normal' }}>{weather.rainChance}%</span>
-                                        </div>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <strong>💨 Peak Wind:</strong> {weather.windMax} mph
-                                        </div>
-                                        <div style={{ textAlign: 'left' }}>
-                                            <strong>☀️ UV Index:</strong> {weather.uvIndex}
-                                        </div>
-                                    </div>
-                                </>
                             )}
                         </div>
 
-                        <strong style={{ color: '#ffffff', display: 'block', marginBottom: '12px', textAlign: 'left', fontSize: '16px' }}>Recommended Area Attractions:</strong>
-                        <ul style={{ color: '#dcd3c6', lineHeight: '1.8', margin: 0, paddingLeft: '20px', textAlign: 'left', fontSize: '14px' }}>
-                            <li style={{ marginBottom: '10px' }}>
-                                <a href="https://sternberg.fhsu.edu/" target="_blank" rel="noopener noreferrer" style={{ color: '#d4af37', fontWeight: 'bold', textDecoration: 'none' }}>Sternberg Museum of Natural History:</a> Famous for its world-class Cretaceous fossils, including the iconic "Fish Within a Fish" specimen and interactive prehistoric exhibits.
-                            </li>
-                            <li style={{ marginBottom: '10px' }}>
-                                <a href="https://www.kshs.org/p/fort-hays/15865" target="_blank" rel="noopener noreferrer" style={{ color: '#d4af37', fontWeight: 'bold', textDecoration: 'none' }}>Historic Fort Hays & Frontier Park:</a> Walk the preserved 1860s military outpost grounds, explore the guardhouse and officer quarters, and visit the resident bison herd.
-                            </li>
-                            <li>
-                                <a href="https://www.downtownhays.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#d4af37', fontWeight: 'bold', textDecoration: 'none' }}>Chestnut Street District:</a> Stroll the historic limestone and brick downtown corridor filled with local coffee shops, artisan boutiques, galleries, and craft dining.
-                            </li>
-                        </ul>
-                    </div>
+                        <button type="button" onClick={() => { setSubmittedOrder(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            style={{ width: '100%', marginBottom: '16px', padding: '14px', background: '#d4af37', color: '#10131d', border: 0, borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>
+                            Edit My Breakfast Order
+                        </button>
+                        <div style={{ ...innerNavyCardStyle, marginBottom: 0 }}>
+                            <h3 style={{ color: '#ffffff', fontFamily: "Georgia, 'Merriweather', serif", borderBottom: '1px solid rgba(212, 175, 55, 0.4)', paddingBottom: '10px', marginTop: 0, marginBottom: '18px', fontSize: '18px' }}>
+                                Tomorrow's Hays Forecast
+                            </h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+                                <div style={{ fontSize: '40px' }}>{weather.icon}</div>
+                                <div>
+                                    <strong style={{ display: 'block', fontSize: '16px', color: '#ffffff' }}>
+                                        {weather.isError ? 'Weather Notice' : `${weather.locationName} — Tomorrow`}
+                                    </strong>
+                                    <span style={{ color: '#cbd5e1', fontSize: '14px' }}>
+                                        {weather.tempMax !== null ? `${weather.desc} — High: ${weather.tempMax}°F` : weather.desc}
+                                    </span>
+                                </div>
+                            </div>
 
+                            {!weather.isError && weather.morningTemp !== null && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', backgroundColor: 'rgba(8, 12, 22, 0.8)', padding: '12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', fontSize: '13px' }}>
+                                    <div>
+                                        <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px' }}>9:00 AM</strong>
+                                        <span style={{ fontSize: '15px', fontWeight: '700' }}>{weather.morningTemp}°F</span>
+                                    </div>
+                                    <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px' }}>12:00 PM</strong>
+                                        <span style={{ fontSize: '15px', fontWeight: '700' }}>{weather.noonTemp}°F</span>
+                                    </div>
+                                    <div>
+                                        <strong style={{ display: 'block', color: '#d4af37', fontSize: '11px' }}>3:00 PM</strong>
+                                        <span style={{ fontSize: '15px', fontWeight: '700' }}>{weather.afternoonTemp}°F</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         );
     }
 
-    // --- 3. MAIN ORDERING SCREEN ---
+    // --- 3. MAIN ORDERING VIEW ---
     return (
-        <div style={{ backgroundImage: `url('${bgImage}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', minHeight: '100vh', width: '100vw', margin: 0, padding: 0 }}>
-            <div className="app-container">
-                <header className="site-header" style={{ backgroundColor: 'rgba(26, 21, 18, 0.65)', backdropFilter: 'blur(4px)' }}>
-                    <p className="eyebrow">Hays, Kansas</p>
-                    <h1>Bissing House</h1>
-                    <p className="sub">Morning Breakfast Order &nbsp;·&nbsp; The {displayRoomName} Suite</p>
-                    <div className="gold-rule"></div>
+        <div style={pageWrapperStyle(bgImage)}>
+            <div style={columnStyle}>
+                {/* TOP FROSTED HEADER WITH CIRCULAR LOGO */}
+                <header style={frostedHeaderStyle}>
+                    <img
+                        src="/Bissing-Logo-Lg-300x300.png"
+                        alt="The Bissing House"
+                        style={{
+                            width: '88px',
+                            height: '88px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            marginBottom: '12px',
+                            boxShadow: '0 6px 18px rgba(0, 0, 0, 0.45)',
+                            border: '2px solid rgba(255, 255, 255, 0.85)'
+                        }}
+                    />
+                    <p style={{ color: '#d4af37', fontSize: '11px', letterSpacing: '2.4px', textTransform: 'uppercase', margin: '0 0 6px 0', fontWeight: '700' }}>
+                        HAYS, KANSAS &nbsp;•&nbsp; EST. 1908
+                    </p>
+                    <h1 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '38px', color: '#ffffff', margin: '0 0 12px 0', fontWeight: '700', letterSpacing: '-0.5px' }}>
+                        Bissing House
+                    </h1>
+                    <span style={{
+                        display: 'inline-block',
+                        backgroundColor: 'rgba(86, 45, 74, 0.78)',
+                        border: '1px solid rgba(255, 255, 255, 0.16)',
+                        color: '#f1f5f9',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        letterSpacing: '1.6px',
+                        padding: '5px 15px',
+                        borderRadius: '999px',
+                        textTransform: 'uppercase'
+                    }}>
+                        {displayRoomName}
+                    </span>
                 </header>
 
-                <div className="section-wrapper">
-                    
-                    {/* --- DARK GLASS: TIME PICKER --- */}
-                    <div className="section-card" style={{ backgroundColor: 'rgba(26, 21, 18, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(204, 163, 82, 0.3)', borderRadius: '12px', padding: '24px', marginBottom: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-                        <div className="time-picker-container">
-                            <select 
-                                value={requestedTime} 
-                                onChange={(e) => setRequestedTime(e.target.value)} 
-                                style={{ 
-                                    backgroundColor: 'rgba(26, 21, 18, 0.8)', 
-                                    color: '#e5e5e5', 
-                                    borderColor: requestedTime === '' ? '#d4af37' : 'rgba(204, 163, 82, 0.3)', 
-                                    width: '100%', 
-                                    padding: '12px', 
-                                    borderRadius: '8px',
-                                    outline: 'none',
-                                    fontSize: '16px'
+                {/* DARK NAVY SLATE CONTAINER */}
+                <div style={darkNavyShellStyle}>
+                    {/* SPLIT-FLAP DIGITAL TIME SELECTOR CARD */}
+                    <div style={{ ...innerNavyCardStyle, textAlign: 'center', padding: '20px 22px' }}>
+                        <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', color: '#ffffff', marginBottom: '14px' }}>
+                            Select Time
+                        </div>
+
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '14px',
+                            backgroundColor: '#070a12',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '12px',
+                            padding: '14px 22px',
+                            boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.85)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => cycleTime(-1)}
+                                aria-label="Earlier time"
+                                style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    border: '1px solid rgba(255,255,255,0.14)',
+                                    backgroundColor: 'rgba(255,255,255,0.04)',
+                                    color: '#cbd5e1',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
                             >
-                                <option value="" disabled>Select a time...</option>
-                                <option value="Continental">Continental (Prior to 8:30 AM)</option>
-                                <option value="08:30 AM">08:30 AM</option>
-                                <option value="09:00 AM">09:00 AM</option>
-                                <option value="09:30 AM">09:30 AM</option>
-                                <option value="10:00 AM">10:00 AM</option>
-                                <option value="10:30 AM">10:30 AM</option>
-                            </select>
+                                ‹
+                            </button>
+
+                            <div style={{
+                                position: 'relative',
+                                backgroundColor: '#121622',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                width: '64px',
+                                height: '64px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontFamily: "'Courier New', monospace",
+                                fontSize: '32px',
+                                fontWeight: '800',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.6)'
+                            }}>
+                                {clockLeft}
+                                <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: 'rgba(0,0,0,0.65)' }} />
+                            </div>
+
+                            <div style={{ color: '#d4af37', fontSize: '24px', fontWeight: '800', lineHeight: 1 }}>
+                                :
+                            </div>
+
+                            <div style={{
+                                position: 'relative',
+                                backgroundColor: '#121622',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                width: '64px',
+                                height: '64px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontFamily: "'Courier New', monospace",
+                                fontSize: '32px',
+                                fontWeight: '800',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.6)'
+                            }}>
+                                {clockRight}
+                                <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: 'rgba(0,0,0,0.65)' }} />
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => cycleTime(1)}
+                                aria-label="Later time"
+                                style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    border: '1px solid rgba(255,255,255,0.14)',
+                                    backgroundColor: 'rgba(255,255,255,0.04)',
+                                    color: '#cbd5e1',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                ›
+                            </button>
                         </div>
+
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#94a3b8' }}>
+                            {isContinental ? 'Early Continental (Before 8:30 AM)' : `${requestedTime} Service`}
+                        </div>
+
+                        {!isContinental && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setGuestCount(1)}
+                                    style={{
+                                        padding: '10px 12px',
+                                        borderRadius: '6px',
+                                        border: guestCount === 1 ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
+                                        backgroundColor: guestCount === 1 ? 'rgba(212, 175, 55, 0.16)' : 'rgba(11, 17, 30, 0.8)',
+                                        color: guestCount === 1 ? '#ffffff' : '#94a3b8',
+                                        fontWeight: '700',
+                                        fontSize: '13px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    1 Guest (1 Plate)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setGuestCount(2)}
+                                    style={{
+                                        padding: '10px 12px',
+                                        borderRadius: '6px',
+                                        border: guestCount === 2 ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
+                                        backgroundColor: guestCount === 2 ? 'rgba(212, 175, 55, 0.16)' : 'rgba(11, 17, 30, 0.8)',
+                                        color: guestCount === 2 ? '#ffffff' : '#94a3b8',
+                                        fontWeight: '700',
+                                        fontSize: '13px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    2 Guests (2 Plates)
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* --- DYNAMIC SECTION: CONTINENTAL OR PLATE BUILDER --- */}
                     {isContinental ? (
-                        <div className="section-card" style={{ backgroundColor: 'rgba(26, 21, 18, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(204, 163, 82, 0.3)', borderLeft: '6px solid #d4af37', borderRadius: '12px', padding: '24px', marginBottom: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-                            <h2 className="section-title" style={{ marginBottom: '10px', color: '#ffffff' }}>Continental Service</h2>
-                            <p style={{ color: '#e5e5e5', fontSize: '15px', lineHeight: '1.6', marginBottom: '15px' }}>
-                                All fresh continental items will be set out in the main dining room. Please be sure to check the dining room fridge as well for additional chilled options!
+                        <div style={innerNavyCardStyle}>
+                            <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#ffffff', marginTop: 0, marginBottom: '8px' }}>
+                                Continental Service
+                            </h2>
+                            <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                                Fresh continental items will be set out in the main dining room prior to 8:30 AM. Please check the dining room refrigerator for chilled items.
                             </p>
                         </div>
                     ) : (
-                        <div className="section-card" style={{ backgroundColor: 'rgba(26, 21, 18, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(204, 163, 82, 0.3)', borderRadius: '12px', padding: '24px', marginBottom: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', color: '#e5e5e5' }}>
-                            <h2 className="section-title" style={{ color: '#ffffff', borderBottom: '1px solid rgba(204, 163, 82, 0.3)', paddingBottom: '12px', marginBottom: '20px' }}>Build A Plate</h2>
-                            <div className="plate-builder">
-                                
-                                <div className="options-group" style={{ marginBottom: '20px' }}>
-                                    <strong style={{ color: '#d4af37', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>1. Main Course</strong>
-                                    <div style={{ display: 'flex', gap: '15px', marginBottom: '10px' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                            <input 
-                                                type="radio" 
-                                                name="main" 
-                                                checked={plateType === 'Egg'} 
-                                                onChange={() => {
-                                                    setPlateType('Egg');
-                                                    setEggStyle('Scrambled');
-                                                }} 
-                                            /> Egg Breakfast
-                                        </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                            <input 
-                                                type="radio" 
-                                                name="main" 
-                                                checked={plateType === 'Griddle'} 
-                                                onChange={() => {
-                                                    setPlateType('Griddle');
-                                                    setGriddleType('Crepes');
-                                                    setGriddleFlavor('Plain');
-                                                }} 
-                                            /> Griddle Breakfast
-                                        </label>
+                        activePlates.map((plate, idx) => (
+                            <div key={plate.plateNumber} style={innerNavyCardStyle}>
+                                <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#ffffff', margin: '0 0 4px 0', fontWeight: '700' }}>
+                                    {guestCount === 1 ? 'Build A Breakfast Plate' : `Plate ${plate.plateNumber} of 2`}
+                                </h2>
+                                <p style={{ color: '#94a3b8', fontSize: '12.5px', margin: '0 0 22px 0' }}>
+                                    Customize your hot breakfast plate cooked to order by the Bissing House kitchen.
+                                </p>
+
+                                <div style={{ marginBottom: '24px' }}>
+                                    <span style={sectionLabelStyle}>1. SELECT MAIN COURSE</span>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => updatePlate(idx, p => ({ ...p, plateType: 'Egg' }))}
+                                            style={mainCourseCardStyle(plate.plateType === 'Egg')}
+                                        >
+                                            <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', marginBottom: '3px' }}>
+                                                Eggs
+                                            </div>
+                                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                                                Choose egg style
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => updatePlate(idx, p => ({ ...p, plateType: 'Griddle' }))}
+                                            style={mainCourseCardStyle(plate.plateType === 'Griddle')}
+                                        >
+                                            <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', marginBottom: '3px' }}>
+                                                Griddle Breakfast
+                                            </div>
+                                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                                                Crepes, French Toast, or Pancakes
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {plate.plateType === 'Egg' && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '12px' }}>
+                                            {eggStyles.map(style => {
+                                                const active = plate.eggStyle === style;
+                                                return (
+                                                    <button
+                                                        key={style}
+                                                        type="button"
+                                                        onClick={() => updatePlate(idx, p => ({ ...p, eggStyle: style }))}
+                                                        style={{
+                                                            padding: '10px 8px',
+                                                            borderRadius: '6px',
+                                                            border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
+                                                            backgroundColor: active ? '#d4af37' : 'rgba(11, 17, 30, 0.9)',
+                                                            color: active ? '#0b111e' : '#e2e8f0',
+                                                            fontSize: '13px',
+                                                            fontWeight: active ? '800' : '600',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        {style}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {plate.plateType === 'Griddle' && (
+                                        <div style={{ marginTop: '12px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
+                                                {griddleTypes.map(type => {
+                                                    const active = plate.griddleType === type;
+                                                    return (
+                                                        <button
+                                                            key={type}
+                                                            type="button"
+                                                            onClick={() => updatePlate(idx, p => ({ ...p, griddleType: type }))}
+                                                            style={{
+                                                                padding: '10px 8px',
+                                                                borderRadius: '6px',
+                                                                border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
+                                                                backgroundColor: active ? '#d4af37' : 'rgba(11, 17, 30, 0.9)',
+                                                                color: active ? '#0b111e' : '#e2e8f0',
+                                                                fontSize: '13px',
+                                                                fontWeight: active ? '800' : '600',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {type}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                {griddleFlavors.map(flavor => {
+                                                    const active = plate.griddleFlavor === flavor;
+                                                    return (
+                                                        <button
+                                                            key={flavor}
+                                                            type="button"
+                                                            onClick={() => updatePlate(idx, p => ({ ...p, griddleFlavor: flavor }))}
+                                                            style={{
+                                                                padding: '10px 8px',
+                                                                borderRadius: '6px',
+                                                                border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
+                                                                backgroundColor: active ? 'rgba(212, 175, 55, 0.2)' : 'rgba(11, 17, 30, 0.9)',
+                                                                color: active ? '#d4af37' : '#cbd5e1',
+                                                                fontSize: '12.5px',
+                                                                fontWeight: '700',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            {flavor}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ marginBottom: '24px' }}>
+                                    <span style={sectionLabelStyle}>2. ACCOMPANIMENTS</span>
+
+                                    {idx === 0 && (
+                                        <div style={{
+                                            backgroundColor: 'rgba(88, 18, 34, 0.35)',
+                                            border: '1px solid rgba(190, 24, 60, 0.55)',
+                                            borderRadius: '6px',
+                                            padding: '12px 14px',
+                                            marginBottom: '12px',
+                                            fontSize: '11.5px',
+                                            color: '#fecdd3',
+                                            lineHeight: '1.5'
+                                        }}>
+                                            <strong style={{ color: '#fda4af', display: 'block', marginBottom: '3px' }}>
+                                                Menu Advisory: Fresh Fruit Temporarily Unavailable
+                                            </strong>
+                                            Due to a widespread multi-state foodborne illness outbreak affecting fresh produce across the country (including Cyclospora and viral investigations in berry crops), we have temporarily removed Fresh Fruit out of an abundance of caution for guest safety.
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        {sideOptions.map(side => {
+                                            const checked = plate.sides.includes(side);
+                                            return (
+                                                <button
+                                                    key={side}
+                                                    type="button"
+                                                    onClick={() => togglePlateArrayItem(idx, 'sides', side)}
+                                                    style={checkboxCardStyle(checked)}
+                                                >
+                                                    <span style={{
+                                                        width: '16px',
+                                                        height: '16px',
+                                                        borderRadius: '3px',
+                                                        backgroundColor: checked ? '#d4af37' : '#ffffff',
+                                                        color: '#0b111e',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px',
+                                                        fontWeight: '900',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        {checked ? '✓' : ''}
+                                                    </span>
+                                                    <span>{side}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
-                                {plateType === 'Egg' && (
-                                    <div className="options-group" style={{ marginBottom: '20px' }}>
-                                        <select value={eggStyle} onChange={(e) => setEggStyle(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(204, 163, 82, 0.3)', backgroundColor: 'rgba(26, 21, 18, 0.8)', color: '#e5e5e5', outline: 'none' }}>
-                                            {eggStyles.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                <div style={{ marginBottom: '20px' }}>
+                                    <span style={sectionLabelStyle}>3. BEVERAGES</span>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                        {bevOptions.map(bev => {
+                                            const checked = plate.beverages.includes(bev);
+                                            return (
+                                                <button
+                                                    key={bev}
+                                                    type="button"
+                                                    onClick={() => togglePlateArrayItem(idx, 'beverages', bev)}
+                                                    style={checkboxCardStyle(checked)}
+                                                >
+                                                    <span style={{
+                                                        width: '16px',
+                                                        height: '16px',
+                                                        borderRadius: '3px',
+                                                        backgroundColor: checked ? '#d4af37' : '#ffffff',
+                                                        color: '#0b111e',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px',
+                                                        fontWeight: '900',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        {checked ? '✓' : ''}
+                                                    </span>
+                                                    <span>{bev}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                )}
-
-                                {plateType === 'Griddle' && (
-                                    <div className="options-group" style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                                        <select value={griddleType} onChange={(e) => setGriddleType(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid rgba(204, 163, 82, 0.3)', backgroundColor: 'rgba(26, 21, 18, 0.8)', color: '#e5e5e5', outline: 'none' }}>
-                                            {griddleTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                                        </select>
-                                        <select value={griddleFlavor} onChange={(e) => setGriddleFlavor(e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid rgba(204, 163, 82, 0.3)', backgroundColor: 'rgba(26, 21, 18, 0.8)', color: '#e5e5e5', outline: 'none' }}>
-                                            {griddleFlavors.map(f => <option key={f} value={f}>{f}</option>)}
-                                        </select>
-                                    </div>
-                                )}
-
-                                <div className="options-group" style={{ marginBottom: '20px' }}>
-                                    <strong style={{ color: '#d4af37', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Accompaniments</strong>
-                                    
-                                    <div style={{ backgroundColor: 'rgba(144, 12, 63, 0.2)', borderLeft: '4px solid #900C3F', padding: '12px 15px', borderRadius: '6px', marginBottom: '15px', fontSize: '13px', color: '#fca5a5', lineHeight: '1.5' }}>
-                                        <strong style={{ color: '#ff8f8f', display: 'block', marginBottom: '4px' }}>⚠️ Menu Advisory: Fresh Fruit Temporarily Unavailable</strong>
-                                        Due to a widespread multi-state foodborne illness outbreak affecting fresh produce across the country (including the surge of <em>Cyclospora</em> and ongoing viral investigations like <em>Hepatitis A</em> in berry crops), we have temporarily removed Fresh Fruit from our breakfast menu out of an abundance of caution for our guests' health and safety.
-                                    </div>
-
-                                    {sideOptions.map(side => (
-                                        <label key={side} style={{ display: 'block', marginBottom: '8px', cursor: 'pointer' }}>
-                                            <input type="checkbox" checked={sides.includes(side)} onChange={() => toggleArrayItem(sides, setSides, side)} style={{ marginRight: '8px' }} /> {side}
-                                        </label>
-                                    ))}
                                 </div>
 
-                                <div className="options-group" style={{ marginBottom: '20px' }}>
-                                    <strong style={{ color: '#d4af37', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Beverages</strong>
-                                    {bevOptions.map(bev => (
-                                        <label key={bev} style={{ display: 'block', marginBottom: '8px', cursor: 'pointer' }}>
-                                            <input type="checkbox" checked={beverages.includes(bev)} onChange={() => toggleArrayItem(beverages, setBeverages, bev)} style={{ marginRight: '8px' }} /> {bev}
-                                        </label>
-                                    ))}
-                                </div>
-
-                                <div className="options-group" style={{ marginTop: '25px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '20px' }}>
-                                    <strong style={{ color: '#d4af37', display: 'block', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '12px' }}>Special Requests</strong>
-                                    <textarea 
-                                        value={dietaryNotes}
-                                        onChange={(e) => setDietaryNotes(e.target.value)}
-                                        placeholder="Allergies, dietary restrictions, etc..."
-                                        style={{ width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid rgba(204, 163, 82, 0.3)', backgroundColor: 'rgba(26, 21, 18, 0.8)', color: '#e5e5e5', minHeight: '80px', boxSizing: 'border-box', outline: 'none' }}
+                                <div>
+                                    <span style={sectionLabelStyle}>4. SPECIAL REQUESTS / DIETARY NOTES</span>
+                                    <input
+                                        type="text"
+                                        value={plate.notes}
+                                        onChange={(e) => updatePlate(idx, p => ({ ...p, notes: e.target.value }))}
+                                        placeholder="Allergies or dietary restrictions..."
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 14px',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            backgroundColor: 'rgba(11, 17, 30, 0.85)',
+                                            color: '#ffffff',
+                                            fontSize: '13.5px',
+                                            boxSizing: 'border-box',
+                                            outline: 'none'
+                                        }}
                                     />
                                 </div>
-
-                                <button className="add-btn" onClick={handleAddPlate} disabled={!plateType} style={{ width: '100%', backgroundColor: (!plateType) ? 'rgba(255,255,255,0.1)' : '#d4af37', color: (!plateType) ? '#666' : '#1a1512', border: 'none', borderRadius: '8px', padding: '16px', fontSize: '16px', marginTop: '20px', cursor: (!plateType) ? 'not-allowed' : 'pointer', fontWeight: 'bold', transition: 'background-color 0.2s' }}>
-                                    Add Plate to Order
-                                </button>
                             </div>
-                        </div>
+                        ))
                     )}
 
-                    {/* --- LEGAL HEALTH ADVISORY DISCLAIMER FOOTER --- */}
-                    <div style={{ 
-                        backgroundColor: 'rgba(26, 21, 18, 0.85)', 
-                        color: '#dcd3c6', 
-                        textAlign: 'center', 
-                        padding: '14px 20px', 
-                        fontSize: '12px', 
-                        lineHeight: '1.5', 
-                        borderRadius: '8px', 
-                        margin: '10px auto 80px auto', 
-                        maxWidth: '600px',
-                        border: '1px solid #900C3F',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        boxSizing: 'border-box'
-                    }}>
-                        * Consuming raw or undercooked meats, poultry, seafood, shellfish, or eggs may increase your risk of foodborne illness.
+                    <button
+                        type="button"
+                        onClick={handleSubmitOrder}
+                        disabled={isSubmitting}
+                        style={{
+                            width: '100%',
+                            padding: '16px 24px',
+                            borderRadius: '6px',
+                            border: isOrderReady ? '1px solid #f3cf55' : '1px solid rgba(255,255,255,0.12)',
+                            backgroundColor: isOrderReady ? '#d4af37' : 'rgba(255, 255, 255, 0.08)',
+                            color: isOrderReady ? '#0b111e' : '#94a3b8',
+                            fontFamily: "Georgia, 'Merriweather', serif",
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s ease',
+                            boxShadow: isOrderReady ? '0 8px 24px rgba(212, 175, 55, 0.3)' : 'none'
+                        }}
+                    >
+                        {isSubmitting
+                            ? 'Sending Order to Kitchen...'
+                            : isContinental
+                            ? 'Submit Continental Breakfast Request'
+                            : `Submit Breakfast Order (${guestCount} ${guestCount === 1 ? 'Plate' : 'Plates'})`}
+                    </button>
+
+                    <div style={{ textAlign: 'center', fontSize: '11px', color: '#64748b', marginTop: '14px' }}>
+                        * Consuming raw or undercooked meats, poultry, or eggs may increase your risk of foodborne illness.
                     </div>
                 </div>
-
-                {/* --- VIEW ORDER MODAL --- */}
-                {isCartOpen && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-                        <div style={{ backgroundColor: '#1a1512', border: '1px solid #d4af37', borderRadius: '8px', padding: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '15px' }}>
-                                <h2 style={{ color: '#ffffff', margin: 0, fontFamily: "'Merriweather', serif" }}>Your Order ({cart.length} Plates)</h2>
-                                <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#d4af37' }}>&times;</button>
-                            </div>
-                            
-                            {cart.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#999' }}>No plates added yet.</p>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {cart.map((item, index) => (
-                                        <div key={item.id} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '6px', borderLeft: '4px solid #d4af37' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <strong style={{ fontSize: '16px', color: '#ffffff' }}>Plate {index + 1}: {item.name}</strong>
-                                                <button onClick={() => removeFromCart(index)} style={{ background: 'none', border: 'none', color: '#ff8f8f', textDecoration: 'underline', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
-                                            </div>
-                                            <p style={{ fontSize: '14px', color: '#dcd3c6', margin: '5px 0' }}>{item.details}</p>
-                                            {item.plateNote && (
-                                                <p style={{ fontSize: '13px', color: '#fca5a5', margin: '5px 0', backgroundColor: 'rgba(144, 12, 63, 0.2)', padding: '8px', borderRadius: '4px' }}>
-                                                    <strong>Notes:</strong> {item.plateNote}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            
-                            <button onClick={() => setIsCartOpen(false)} style={{ width: '100%', padding: '14px', marginTop: '20px', backgroundColor: '#d4af37', color: '#1a1512', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                Continue Building
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {(cart.length > 0 || isContinental) && (
-                    <div className="cart-bar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#1a1512', color: 'white', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1001, boxShadow: '0 -4px 12px rgba(0,0,0,0.5)', borderTop: '1px solid rgba(204,163,82,0.3)' }}>
-                        {isContinental ? (
-                            <span style={{ fontSize: '15px', color: '#dcd3c6', fontWeight: 'bold' }}>Continental Service</span>
-                        ) : (
-                            <span style={{ cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold', fontSize: '15px', color: '#d4af37' }} onClick={() => setIsCartOpen(true)}>
-                                {`View Order (${cart.length} Plates)`}
-                            </span>
-                        )}
-                        <button onClick={handleSubmitOrder} disabled={isSubmitting} style={{ backgroundColor: '#d4af37', color: '#1a1512', border: 'none', borderRadius: '6px', padding: '10px 20px', fontWeight: 'bold', fontSize: '15px', cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
-                            {isSubmitting ? "Sending..." : "Submit Order"}
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );
