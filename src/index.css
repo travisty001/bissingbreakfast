@@ -132,7 +132,7 @@ body { background:#151016; }
 .bh-admin h2 { font-size: clamp(25px, 2.5vw, 32px)!important; font-weight: 800!important; }
 .bh-admin h3 { font-size: 22px!important; font-weight: 800!important; }
 .bh-admin p, .bh-admin span, .bh-admin button, .bh-admin input, .bh-admin label { font-variant-caps: small-caps; font-weight: 700; }
-.bh-admin .text-\\[9px\\], .bh-admin .text-\\[10px\\], .bh-admin .text-xs { font-size: 14px!important; }
+.bh-admin [class~="text-[9px]"], .bh-admin [class~="text-[10px]"], .bh-admin .text-xs { font-size: 14px!important; }
 .bh-admin .text-sm { font-size: 17px!important; }
 .bh-admin .text-lg { font-size: 21px!important; }
 .bh-admin .bh-kicker { font-size: 14px!important; font-weight: 800!important; }
