@@ -335,7 +335,7 @@ export default function GuestOrderingApp() {
     };
 
     const sectionLabelStyle = {
-        color: '#d4af37',
+        color: '#6b441e',
         display: 'block',
         marginBottom: '12px',
         textTransform: 'uppercase',
@@ -348,8 +348,8 @@ export default function GuestOrderingApp() {
         textAlign: 'left',
         padding: '16px 18px',
         borderRadius: '8px',
-        backgroundColor: isSelected ? '#efe1c8' : '#f8f1e7',
-        border: isSelected ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
+        backgroundColor: isSelected ? '#edd3a0' : '#fbf4e9',
+        border: isSelected ? '2px solid #805124' : '1px solid #c7ad8b',
         color: '#34202d',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
@@ -362,8 +362,8 @@ export default function GuestOrderingApp() {
         gap: '12px',
         padding: '13px 16px',
         borderRadius: '8px',
-        backgroundColor: isChecked ? '#efe1c8' : '#f8f1e7',
-        border: isChecked ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
+        backgroundColor: isChecked ? '#edd3a0' : '#fbf4e9',
+        border: isChecked ? '2px solid #805124' : '1px solid #c7ad8b',
         color: '#34202d',
         fontSize: '14px',
         fontWeight: '600',
@@ -520,9 +520,9 @@ export default function GuestOrderingApp() {
                                     style={{
                                         padding: '10px 12px',
                                         borderRadius: '6px',
-                                        border: guestCount === 1 ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
-                                        backgroundColor: guestCount === 1 ? 'rgba(212, 175, 55, 0.16)' : 'rgba(11, 17, 30, 0.8)',
-                                        color: guestCount === 1 ? '#ffffff' : '#94a3b8',
+                                        border: guestCount === 1 ? '2px solid #805124' : '1px solid #c7ad8b',
+                                        backgroundColor: guestCount === 1 ? '#edd3a0' : '#fbf4e9',
+                                        color: '#38251d',
                                         fontWeight: '700',
                                         fontSize: '13px',
                                         cursor: 'pointer'
@@ -536,9 +536,9 @@ export default function GuestOrderingApp() {
                                     style={{
                                         padding: '10px 12px',
                                         borderRadius: '6px',
-                                        border: guestCount === 2 ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
-                                        backgroundColor: guestCount === 2 ? 'rgba(212, 175, 55, 0.16)' : 'rgba(11, 17, 30, 0.8)',
-                                        color: guestCount === 2 ? '#ffffff' : '#94a3b8',
+                                        border: guestCount === 2 ? '2px solid #805124' : '1px solid #c7ad8b',
+                                        backgroundColor: guestCount === 2 ? '#edd3a0' : '#fbf4e9',
+                                        color: '#38251d',
                                         fontWeight: '700',
                                         fontSize: '13px',
                                         cursor: 'pointer'
@@ -553,20 +553,20 @@ export default function GuestOrderingApp() {
 
                     {isContinental ? (
                         <div style={innerNavyCardStyle}>
-                            <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#ffffff', marginTop: 0, marginBottom: '8px' }}>
+                            <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#38251d', marginTop: 0, marginBottom: '8px' }}>
                                 Continental Service
                             </h2>
-                            <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
+                            <p style={{ color: '#5e4b41', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
                                 Fresh continental items will be set out in the main dining room prior to 8:30 AM. Please check the dining room refrigerator for chilled items.
                             </p>
                         </div>
                     ) : (
                         activePlates.map((plate, idx) => (
                             <div key={plate.plateNumber} style={innerNavyCardStyle}>
-                                <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#ffffff', margin: '0 0 4px 0', fontWeight: '700' }}>
+                                <h2 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '20px', color: '#38251d', margin: '0 0 4px 0', fontWeight: '700' }}>
                                     {guestCount === 1 ? 'Build A Breakfast Plate' : `Plate ${plate.plateNumber} of 2`}
                                 </h2>
-                                <p style={{ color: '#94a3b8', fontSize: '12.5px', margin: '0 0 22px 0' }}>
+                                <p style={{ color: '#5e4b41', fontSize: '12.5px', margin: '0 0 22px 0' }}>
                                     Customize your hot breakfast plate cooked to order by the Bissing House kitchen.
                                 </p>
 
@@ -581,7 +581,7 @@ export default function GuestOrderingApp() {
                                             <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', marginBottom: '3px' }}>
                                                 Eggs
                                             </div>
-                                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                                            <div style={{ fontSize: '12.5px', color: '#5e4b41' }}>
                                                 Choose egg style
                                             </div>
                                         </button>
@@ -594,7 +594,7 @@ export default function GuestOrderingApp() {
                                             <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', marginBottom: '3px' }}>
                                                 Griddle Breakfast
                                             </div>
-                                            <div style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                                            <div style={{ fontSize: '12.5px', color: '#5e4b41' }}>
                                                 Crepes, French Toast, or Pancakes
                                             </div>
                                         </button>
@@ -612,9 +612,9 @@ export default function GuestOrderingApp() {
                                                         style={{
                                                             padding: '10px 8px',
                                                             borderRadius: '6px',
-                                                            border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
-                                                            backgroundColor: active ? '#d4af37' : 'rgba(11, 17, 30, 0.9)',
-                                                            color: active ? '#0b111e' : '#e2e8f0',
+                                                            border: active ? '2px solid #805124' : '1px solid #c7ad8b',
+                                                            backgroundColor: active ? '#edd3a0' : '#fbf4e9',
+                                                            color: '#38251d',
                                                             fontSize: '13px',
                                                             fontWeight: active ? '800' : '600',
                                                             cursor: 'pointer'
@@ -640,9 +640,9 @@ export default function GuestOrderingApp() {
                                                             style={{
                                                                 padding: '10px 8px',
                                                                 borderRadius: '6px',
-                                                                border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
-                                                                backgroundColor: active ? '#d4af37' : 'rgba(11, 17, 30, 0.9)',
-                                                                color: active ? '#0b111e' : '#e2e8f0',
+                                                                border: active ? '2px solid #805124' : '1px solid #c7ad8b',
+                                                                backgroundColor: active ? '#edd3a0' : '#fbf4e9',
+                                                                color: '#38251d',
                                                                 fontSize: '13px',
                                                                 fontWeight: active ? '800' : '600',
                                                                 cursor: 'pointer'
@@ -664,9 +664,9 @@ export default function GuestOrderingApp() {
                                                             style={{
                                                                 padding: '10px 8px',
                                                                 borderRadius: '6px',
-                                                                border: active ? '1.5px solid #d4af37' : '1px solid rgba(255,255,255,0.1)',
-                                                                backgroundColor: active ? 'rgba(212, 175, 55, 0.2)' : 'rgba(11, 17, 30, 0.9)',
-                                                                color: active ? '#d4af37' : '#cbd5e1',
+                                                                border: active ? '2px solid #805124' : '1px solid #c7ad8b',
+                                                                backgroundColor: active ? '#edd3a0' : '#fbf4e9',
+                                                                color: '#38251d',
                                                                 fontSize: '12.5px',
                                                                 fontWeight: '700',
                                                                 cursor: 'pointer'
@@ -716,8 +716,8 @@ export default function GuestOrderingApp() {
                                                         width: '16px',
                                                         height: '16px',
                                                         borderRadius: '3px',
-                                                        backgroundColor: checked ? '#d4af37' : '#ffffff',
-                                                        color: '#0b111e',
+                                                        backgroundColor: checked ? '#805124' : '#ffffff',
+                                                        color: '#ffffff',
                                                         display: 'inline-flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
@@ -750,8 +750,8 @@ export default function GuestOrderingApp() {
                                                         width: '16px',
                                                         height: '16px',
                                                         borderRadius: '3px',
-                                                        backgroundColor: checked ? '#d4af37' : '#ffffff',
-                                                        color: '#0b111e',
+                                                        backgroundColor: checked ? '#805124' : '#ffffff',
+                                                        color: '#ffffff',
                                                         display: 'inline-flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
