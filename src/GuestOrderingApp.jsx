@@ -403,24 +403,11 @@ export default function GuestOrderingApp() {
         return (
             <div className="bh-guest" style={pageWrapperStyle('/dining.jpg')}>
                 <div style={columnStyle}>
-                    <header className="bh-hero" style={frostedHeaderStyle}>
-                        <img
-                            className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
-                            alt="Bissing House"
-                            style={{ width: '84px', height: '84px', borderRadius: '50%', marginBottom: '12px' }}
-                        />
-                        <p style={{ color: '#d4af37', fontSize: '11px', letterSpacing: '2.5px', textTransform: 'uppercase', margin: '0 0 6px 0', fontWeight: '700' }}>
-                            HAYS, KANSAS &nbsp;•&nbsp; EST. 1908
-                        </p>
-                        <h1 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '34px', color: '#ffffff', margin: '0 0 12px 0' }}>
-                            Bissing House
-                        </h1>
-                        <span style={{ display: 'inline-block', backgroundColor: 'rgba(88, 44, 77, 0.75)', border: '1px solid rgba(255,255,255,0.18)', color: '#f8fafc', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', padding: '6px 16px', borderRadius: '999px' }}>
-                            {displayRoomName}
-                        </span>
-                    </header>
+                    <header className="bh-hero bh-hero--room" aria-label={`Bissing House — ${displayRoomName}`}>
+                    <img className="bh-logo bh-logo--room" src="/Bissing-Logo-Lg-300x300.png" alt="Bissing House" />
+                </header>
 
-                    <div className="bh-order-shell" style={darkNavyShellStyle}><div className="bh-menu-intro"><span className="bh-kicker">THE BISSING HOUSE · BREAKFAST SERVICE</span><h2>Your morning, made to order.</h2><p>Choose your breakfast time, then build a plate just the way you like it.</p><div className="bh-steps"><span><b>01</b> Time & guests</span><span><b>02</b> Your breakfast</span><span><b>03</b> Send to kitchen</span></div></div>
+                    <div className="bh-order-shell" style={darkNavyShellStyle}>
                         <div style={{ ...innerNavyCardStyle, textAlign: 'center', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
                             <h2 style={{ color: '#d4af37', fontFamily: "Georgia, 'Merriweather', serif", marginTop: 0, marginBottom: '10px', fontSize: '26px' }}>
                                 Order Confirmed
@@ -491,44 +478,12 @@ export default function GuestOrderingApp() {
         <div className="bh-guest" style={pageWrapperStyle(bgImage)}>
             <div style={columnStyle}>
                 {/* TOP FROSTED HEADER WITH CIRCULAR LOGO */}
-                <header className="bh-hero" style={frostedHeaderStyle}>
-                    <img
-                        className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
-                        alt="The Bissing House"
-                        style={{
-                            width: '88px',
-                            height: '88px',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            marginBottom: '12px',
-                            boxShadow: '0 6px 18px rgba(0, 0, 0, 0.45)',
-                            border: '2px solid rgba(255, 255, 255, 0.85)'
-                        }}
-                    />
-                    <p style={{ color: '#d4af37', fontSize: '11px', letterSpacing: '2.4px', textTransform: 'uppercase', margin: '0 0 6px 0', fontWeight: '700' }}>
-                        HAYS, KANSAS &nbsp;•&nbsp; EST. 1908
-                    </p>
-                    <h1 style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '38px', color: '#ffffff', margin: '0 0 12px 0', fontWeight: '700', letterSpacing: '-0.5px' }}>
-                        Bissing House
-                    </h1>
-                    <span style={{
-                        display: 'inline-block',
-                        backgroundColor: 'rgba(86, 45, 74, 0.78)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        color: '#f1f5f9',
-                        fontSize: '10px',
-                        fontWeight: '700',
-                        letterSpacing: '1.6px',
-                        padding: '5px 15px',
-                        borderRadius: '999px',
-                        textTransform: 'uppercase'
-                    }}>
-                        {displayRoomName}
-                    </span>
+                <header className="bh-hero bh-hero--room" aria-label={`Bissing House — ${displayRoomName}`}>
+                    <img className="bh-logo bh-logo--room" src="/Bissing-Logo-Lg-300x300.png" alt="Bissing House" />
                 </header>
 
                 {/* DARK NAVY SLATE CONTAINER */}
-                <div className="bh-order-shell" style={darkNavyShellStyle}><div className="bh-menu-intro"><span className="bh-kicker">THE BISSING HOUSE · BREAKFAST SERVICE</span><h2>Your morning, made to order.</h2><p>Choose your breakfast time, then build a plate just the way you like it.</p><div className="bh-steps"><span><b>01</b> Time & guests</span><span><b>02</b> Your breakfast</span><span><b>03</b> Send to kitchen</span></div></div>
+                <div className="bh-order-shell" style={darkNavyShellStyle}>
                     {/* Edwardian mantel / baby grandfather clock: 1909-inspired, accessible controls */}
                     <section className="bh-clock-section" aria-label="Choose breakfast serving time">
                       <div className="bh-clock-heading"><span className="bh-kicker">A GOOD MORNING BEGINS HERE</span><h2>When shall we serve you?</h2><p>Turn the hands in quarter-hour steps, or choose our early continental breakfast.</p></div>
@@ -554,10 +509,7 @@ export default function GuestOrderingApp() {
                         </div>
                         <button className="bh-clock-step" type="button" onClick={() => cycleTime(1)} aria-label="Later breakfast time">›<span>Later</span></button>
                       </div>
-                      <div className="bh-clock-selected" aria-live="polite">{isContinental ? 'Continental breakfast selected' : `${requestedTime} · Made-to-order breakfast`}</div>
-                      <div className="bh-clock-time-grid" aria-label="Available serving times">
-                        {TIME_SLOTS.slice(0,-1).map((time, i) => <button key={time} type="button" className={timeIndex===i?'is-selected':''} aria-pressed={timeIndex===i} onClick={()=>setTimeIndex(i)}>{time.replace(' AM','')}</button>)}
-                      </div>
+                      <output className="bh-visually-hidden" aria-live="polite">{isContinental ? "Continental breakfast selected" : `Selected serving time ${requestedTime}`}</output>
                       <button type="button" className={`bh-continental ${isContinental?'is-selected':''}`} aria-pressed={isContinental} onClick={()=>setTimeIndex(TIME_SLOTS.length-1)}><span className="bh-continental-icon">☕</span><span><strong>Early Continental Breakfast</strong><small>Help yourself in the dining room before 8:30 AM · No serving time needed</small></span><span className="bh-continental-check">{isContinental?'✓':'Select'}</span></button>
                       <div className="bh-clock-guest-count">
                         {!isContinental && (

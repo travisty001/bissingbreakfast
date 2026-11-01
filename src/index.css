@@ -168,3 +168,47 @@ body { background:#151016; }
 @keyframes bh-pendulum {from {transform:rotate(-15deg)}to{transform:rotate(15deg)}}
 @media(max-width:480px) {.bh-clock-section{padding:20px 10px}.bh-clock-controls{gap:7px}.bh-clock-step{min-width:49px;min-height:60px;font-size:29px}.bh-clock-step span{font-size:10px}.bh-clock-time-grid{grid-template-columns:repeat(3,1fr)}.bh-clock-cabinet{padding:0 9px 6px}.bh-clock-neck{height:60px}}
 @media(prefers-reduced-motion:reduce){.bh-pendulum{animation:none!important}}
+
+/* Room masthead: just the centered logo, filling a restrained cream-glass header. */
+.bh-guest .bh-hero--room {
+  width: min(100%, 400px);
+  height: 156px;
+  margin: 0 auto 18px !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(250, 241, 220, .50) !important;
+  border: 1px solid rgba(243, 225, 192, .72) !important;
+  border-radius: 19px !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+.bh-guest .bh-hero--room .bh-logo--room {
+  display: block;
+  width: auto !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.bh-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+@media (max-width: 480px) {
+  .bh-guest .bh-hero--room { width: min(88%, 350px); height: 136px; }
+}
