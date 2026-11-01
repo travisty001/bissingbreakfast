@@ -71,7 +71,11 @@ export default function GuestOrderingApp() {
     const isContinental = requestedTime === 'Continental';
 
     const cycleTime = (dir) => {
-        setTimeIndex((prev) => (prev + dir + TIME_SLOTS.length) % TIME_SLOTS.length);
+        // Continental is a separate service, not a step on the clock face.
+        const cookedSlotCount = TIME_SLOTS.length - 1;
+        setTimeIndex((prev) => prev === cookedSlotCount
+            ? (dir > 0 ? 0 : cookedSlotCount - 1)
+            : (prev + dir + cookedSlotCount) % cookedSlotCount);
     };
 
     const clockHour = isContinental ? 8 : Number(requestedTime.slice(0, 2));
@@ -316,7 +320,7 @@ export default function GuestOrderingApp() {
     };
 
     const darkNavyShellStyle = {
-        backgroundColor: 'rgba(250, 244, 233, 0.98)',
+        backgroundColor: 'rgba(250, 244, 233, 0.65)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255, 255, 255, 0.09)',
@@ -486,7 +490,7 @@ export default function GuestOrderingApp() {
                 <div className="bh-order-shell" style={darkNavyShellStyle}>
                     {/* Edwardian mantel / baby grandfather clock: 1909-inspired, accessible controls */}
                     <section className="bh-clock-section" aria-label="Choose breakfast serving time">
-                      <div className="bh-clock-heading"><span className="bh-kicker">A GOOD MORNING BEGINS HERE</span><h2>When shall we serve you?</h2><p>Turn the hands in quarter-hour steps, or choose our early continental breakfast.</p></div>
+                      <div className="bh-clock-heading"><h2>What time shall we serve you?</h2></div>
                       <div className="bh-clock-controls">
                         <button className="bh-clock-step" type="button" onClick={() => cycleTime(-1)} aria-label="Earlier breakfast time">‹<span>Earlier</span></button>
                         <div className="bh-clock-cabinet">
@@ -510,7 +514,10 @@ export default function GuestOrderingApp() {
                         <button className="bh-clock-step" type="button" onClick={() => cycleTime(1)} aria-label="Later breakfast time">›<span>Later</span></button>
                       </div>
                       <output className="bh-visually-hidden" aria-live="polite">{isContinental ? "Continental breakfast selected" : `Selected serving time ${requestedTime}`}</output>
-                      <button type="button" className={`bh-continental ${isContinental?'is-selected':''}`} aria-pressed={isContinental} onClick={()=>setTimeIndex(TIME_SLOTS.length-1)}><span className="bh-continental-icon">☕</span><span><strong>Early Continental Breakfast</strong><small>Help yourself in the dining room before 8:30 AM · No serving time needed</small></span><span className="bh-continental-check">{isContinental?'✓':'Select'}</span></button>
+                      <label className="bh-continental-line">
+                        <input type="checkbox" checked={isContinental} onChange={(event) => setTimeIndex(event.target.checked ? TIME_SLOTS.length - 1 : 2)} />
+                        <span>Continental breakfast available before 8:00 AM.</span>
+                      </label>
                       <div className="bh-clock-guest-count">
                         {!isContinental && (
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
@@ -557,7 +564,7 @@ export default function GuestOrderingApp() {
                                 Continental Service
                             </h2>
                             <p style={{ color: '#5e4b41', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>
-                                Fresh continental items will be set out in the main dining room prior to 8:30 AM. Please check the dining room refrigerator for chilled items.
+                                Continental breakfast is available in the dining room before 8:00 AM. Chilled items are in the refrigerator.
                             </p>
                         </div>
                     ) : (
@@ -685,20 +692,9 @@ export default function GuestOrderingApp() {
                                     <span style={sectionLabelStyle}>2. ACCOMPANIMENTS</span>
 
                                     {idx === 0 && (
-                                        <div style={{
-                                            backgroundColor: 'rgba(88, 18, 34, 0.35)',
-                                            border: '1px solid rgba(190, 24, 60, 0.55)',
-                                            borderRadius: '6px',
-                                            padding: '12px 14px',
-                                            marginBottom: '12px',
-                                            fontSize: '11.5px',
-                                            color: '#fecdd3',
-                                            lineHeight: '1.5'
-                                        }}>
-                                            <strong style={{ color: '#fda4af', display: 'block', marginBottom: '3px' }}>
-                                                Menu Advisory: Fresh Fruit Temporarily Unavailable
-                                            </strong>
-                                            Due to a widespread multi-state foodborne illness outbreak affecting fresh produce across the country (including Cyclospora and viral investigations in berry crops), we have temporarily removed Fresh Fruit out of an abundance of caution for guest safety.
+                                        <div className="bh-fruit-notice" role="note">
+                                            <strong>Fresh fruit is temporarily unavailable.</strong>
+                                            <span>Thank you for understanding.</span>
                                         </div>
                                     )}
 

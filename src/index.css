@@ -218,3 +218,61 @@ body { background:#151016; }
 @media(max-width:600px) {
   .bh-guest { background-attachment: scroll !important; }
 }
+
+/* V3 breakfast: 35% transparent outer menu, with opaque readable text panels. */
+.bh-guest .bh-order-shell {
+  background: rgba(250,244,233,.65) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.bh-guest .bh-order-shell > div,
+.bh-guest .bh-clock-section {
+  background: rgba(255,250,242,.97) !important;
+}
+/* Continental is one clean checkbox line below the clock, not a second card. */
+.bh-continental-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 15px auto 8px;
+  padding: 3px 4px;
+  width: fit-content;
+  max-width: 100%;
+  color: #3d281f !important;
+  font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+  font-variant: small-caps;
+  font-size: clamp(15px, 2.6vw, 18px);
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+.bh-continental-line input {
+  appearance: auto;
+  accent-color: #5f371f;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  cursor: pointer;
+}
+.bh-clock-heading {margin-bottom: 14px;}
+.bh-clock-heading h2 {margin: 0 !important;}
+/* Small, prominent high-contrast fruit availability notice. */
+.bh-fruit-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 9px;
+  margin: 0 0 15px;
+  padding: 13px 14px;
+  background: #fff1c6;
+  border: 2px solid #95611e;
+  border-left-width: 6px;
+  border-radius: 10px;
+  color: #382513;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.bh-fruit-notice strong {font-size: 15px; font-weight: 800;}
+.bh-fruit-notice span {font-weight: 600;}
