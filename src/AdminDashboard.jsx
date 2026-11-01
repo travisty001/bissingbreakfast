@@ -222,7 +222,7 @@ export default function AdminDashboard() {
 
   return (
     <div
-      className="min-h-screen text-white flex flex-col select-none overflow-x-hidden"
+      className="bh-admin min-h-screen text-white flex flex-col select-none overflow-x-hidden"
       style={{
         backgroundColor: '#0a0709',
         fontFamily: '"Segoe UI", Tahoma, "Helvetica Neue", Arial, sans-serif'
@@ -230,9 +230,7 @@ export default function AdminDashboard() {
     >
       <header className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 bg-[#0d090b] border-b border-[#23151b]">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-bold text-xs">
-            BH
-          </div>
+          <img className="bh-logo bh-admin-logo" src="/Bissing-Logo-Lg-300x300.png" alt="Bissing House" />
           <div className="leading-tight">
             <div className="text-[#d4af37] text-[10px] tracking-[0.2em] uppercase font-bold mb-1">Bissing House • Kitchen OS</div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Kitchen Dashboard</h1>

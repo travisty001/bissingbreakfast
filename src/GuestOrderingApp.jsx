@@ -374,11 +374,11 @@ export default function GuestOrderingApp() {
     // --- 1. WELCOME & QR LANDING PAGE ---
     if (!isRoomSpecified && !submittedOrder) {
         return (
-            <div style={pageWrapperStyle('/house.jpg')}>
+            <div className="bh-guest" style={pageWrapperStyle('/house.jpg')}>
                 <div style={columnStyle}>
-                    <header style={frostedHeaderStyle}>
+                    <header className="bh-hero" style={frostedHeaderStyle}>
                         <img
-                            src="/Bissing-Logo-Lg-300x300.png"
+                            className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
                             alt="Bissing House"
                             style={{ width: '88px', height: '88px', borderRadius: '50%', marginBottom: '14px', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
                         />
@@ -400,11 +400,11 @@ export default function GuestOrderingApp() {
     // --- 2. CONFIRMATION & WEATHER SCREEN ---
     if (submittedOrder) {
         return (
-            <div style={pageWrapperStyle('/dining.jpg')}>
+            <div className="bh-guest" style={pageWrapperStyle('/dining.jpg')}>
                 <div style={columnStyle}>
-                    <header style={frostedHeaderStyle}>
+                    <header className="bh-hero" style={frostedHeaderStyle}>
                         <img
-                            src="/Bissing-Logo-Lg-300x300.png"
+                            className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
                             alt="Bissing House"
                             style={{ width: '84px', height: '84px', borderRadius: '50%', marginBottom: '12px' }}
                         />
@@ -419,7 +419,7 @@ export default function GuestOrderingApp() {
                         </span>
                     </header>
 
-                    <div style={darkNavyShellStyle}>
+                    <div className="bh-order-shell" style={darkNavyShellStyle}>
                         <div style={{ ...innerNavyCardStyle, textAlign: 'center', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
                             <h2 style={{ color: '#d4af37', fontFamily: "Georgia, 'Merriweather', serif", marginTop: 0, marginBottom: '10px', fontSize: '26px' }}>
                                 Order Confirmed
@@ -487,12 +487,12 @@ export default function GuestOrderingApp() {
 
     // --- 3. MAIN ORDERING VIEW ---
     return (
-        <div style={pageWrapperStyle(bgImage)}>
+        <div className="bh-guest" style={pageWrapperStyle(bgImage)}>
             <div style={columnStyle}>
                 {/* TOP FROSTED HEADER WITH CIRCULAR LOGO */}
-                <header style={frostedHeaderStyle}>
+                <header className="bh-hero" style={frostedHeaderStyle}>
                     <img
-                        src="/Bissing-Logo-Lg-300x300.png"
+                        className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
                         alt="The Bissing House"
                         style={{
                             width: '88px',
@@ -527,7 +527,7 @@ export default function GuestOrderingApp() {
                 </header>
 
                 {/* DARK NAVY SLATE CONTAINER */}
-                <div style={darkNavyShellStyle}>
+                <div className="bh-order-shell" style={darkNavyShellStyle}>
                     {/* SPLIT-FLAP DIGITAL TIME SELECTOR CARD */}
                     <div style={{ ...innerNavyCardStyle, textAlign: 'center', padding: '20px 22px' }}>
                         <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', color: '#ffffff', marginBottom: '14px' }}>

@@ -80,3 +80,24 @@ body {
   padding-bottom: 12px;
   margin-bottom: 24px;
 }
+
+/* V3 Victorian refresh: warm ink, antique brass, deep plum, restrained motion. */
+:root { --bh-plum:#301c2c; --bh-brass:#cba86c; --bh-cream:#f5eee3; }
+body { background:#151016; }
+.bh-guest { color:var(--bh-cream); }
+.bh-hero { border:1px solid rgba(225,192,135,.35)!important; box-shadow:0 20px 60px rgba(10,5,10,.38), inset 0 0 0 4px rgba(210,170,112,.06)!important; backdrop-filter:blur(20px); }
+.bh-hero h1 { letter-spacing:.045em!important; text-shadow:0 2px 15px rgba(0,0,0,.45); }
+.bh-logo { animation:bh-arrive 1.25s cubic-bezier(.2,.7,.2,1) both, bh-breathe 6s ease-in-out 1.25s infinite; box-shadow:0 0 0 3px rgba(203,168,108,.35),0 12px 32px rgba(0,0,0,.35)!important; }
+.bh-order-shell { border:1px solid rgba(203,168,108,.28)!important; box-shadow:0 20px 50px rgba(0,0,0,.32)!important; }
+.bh-guest button, .bh-admin button { transition:transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+.bh-guest button:hover, .bh-admin button:hover { filter:brightness(1.12); }
+.bh-guest button:focus-visible, .bh-admin button:focus-visible, .bh-admin input:focus-visible { outline:3px solid var(--bh-brass); outline-offset:3px; }
+.bh-admin { background:radial-gradient(circle at top,#30202b 0%,#160e15 60%,#100b10 100%)!important; }
+.bh-admin > header { background:rgba(28,16,25,.95)!important; border-bottom:1px solid rgba(203,168,108,.3)!important; }
+.bh-admin-logo { width:48px; height:48px; object-fit:cover; border-radius:50%; }
+.bh-admin h1,.bh-admin h2 { font-family:Georgia,'Merriweather',serif; }
+.bh-preview-banner { position:sticky; top:0; z-index:9999; padding:9px 12px; text-align:center; font:700 11px/1.4 system-ui,sans-serif; letter-spacing:.13em; background:#f3dcae; color:#38221c; }
+@keyframes bh-arrive { from {opacity:0;transform:translateY(12px) scale(.91)} to {opacity:1;transform:translateY(0) scale(1)} }
+@keyframes bh-breathe { 0%,100% {filter:drop-shadow(0 0 0 rgba(203,168,108,0))} 50% {filter:drop-shadow(0 0 12px rgba(203,168,108,.45))} }
+@media(prefers-reduced-motion:reduce) { .bh-logo {animation:none} *,*:before,*:after {scroll-behavior:auto!important} }
+@media(max-width:600px) { .bh-hero h1 {font-size:32px!important} .bh-admin > header {padding:16px!important} }
