@@ -492,7 +492,6 @@ export default function GuestOrderingApp() {
                     <section className="bh-clock-section" aria-label="Choose breakfast serving time">
                       <div className="bh-clock-heading"><h2>What time shall we serve you?</h2></div>
                       <div className="bh-clock-controls">
-                        <button className="bh-clock-step" type="button" onClick={() => cycleTime(-1)} aria-label="Earlier breakfast time">‹<span>Earlier</span></button>
                         <div className="bh-clock-cabinet bh-heritage-clock">
                           <div className="bh-clock-finial bh-clock-finial--left" aria-hidden="true" />
                           <div className="bh-clock-finial bh-clock-finial--right" aria-hidden="true" />
@@ -542,7 +541,6 @@ export default function GuestOrderingApp() {
                           <div className="bh-clock-marquetry" aria-hidden="true"><span>◆</span><span>❧</span><span>◆</span></div>
                           <div className="bh-clock-base"><span>HANDCRAFTED · 1909</span></div>
                         </div>
-                        <button className="bh-clock-step" type="button" onClick={() => cycleTime(1)} aria-label="Later breakfast time">›<span>Later</span></button>
                       </div>
                       <output className="bh-visually-hidden" aria-live="polite">{isContinental ? "Continental breakfast selected" : `Selected serving time ${requestedTime}`}</output>
                       <label className="bh-continental-line">

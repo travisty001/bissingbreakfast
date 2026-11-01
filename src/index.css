@@ -315,3 +315,6 @@ body { background:#151016; }
 .bh-heritage-clock .bh-clock-base {height:29px;margin:1px -7px -3px;border-radius:3px 3px 10px 10px;border:3px ridge #97603d;background:linear-gradient(90deg,#76503b,#dfbb8d 18%,#f1d9b0 50%,#bc8f69 82%,#76503b);color:#573727;font:700 9px/22px Georgia,serif;letter-spacing:.16em;}
 @media(max-width:490px){.bh-clock-controls{gap:5px}.bh-heritage-clock{width:min(246px,60vw);padding:7px 7px 8px}.bh-clock-pilaster{flex-basis:9px}.bh-clock-scroll{font-size:19px}.bh-clock-pediment-name{font-size:8px}.bh-clock-step{min-width:43px}.bh-heritage-clock .bh-clock-neck{height:80px}.bh-clock-marquetry{margin-inline:4px}}
 @media(prefers-reduced-motion:reduce){.bh-hand,.bh-hand-glow{transition:none}}
+
+/* Clock hands are the sole time-adjustment controls; center the cabinet. */
+.bh-clock-controls {justify-content:center;gap:0;}
