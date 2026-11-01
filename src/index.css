@@ -138,3 +138,33 @@ body { background:#151016; }
 .bh-admin .bh-kicker { font-size: 14px!important; font-weight: 800!important; }
 .bh-admin .bh-kitchen-intro p { font-size: 18px; font-weight: 700; }
 @media(max-width:600px) { .bh-admin {font-size:16px} .bh-admin h2 {font-size:25px!important} }
+
+/* 1909-inspired miniature tall-case clock / breakfast selector */
+.bh-clock-section {background:#fff9ed;border:1px solid #dec5a1;border-radius:20px;padding:28px 18px 24px;margin:0 0 20px;text-align:center;box-shadow:0 14px 32px #50332318;color:#432a2d;}
+.bh-clock-heading h2 {font:700 clamp(25px,4vw,34px)/1.2 Georgia,serif!important;color:#432a2d!important;margin:8px 0;}
+.bh-clock-heading p {font-size:14px;color:#7c625a;margin:0 auto 18px;max-width:390px;line-height:1.5;}
+.bh-clock-controls {display:flex;align-items:center;justify-content:center;gap:12px;}
+.bh-clock-step {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:70px;min-height:70px;background:#f0e0c8!important;border:1px solid #c6a06c!important;color:#553427!important;font:700 36px/1 Georgia,serif;cursor:pointer;box-shadow:0 3px 0 #c9a983;}
+.bh-clock-step span {font:700 12px/1.2 system-ui,sans-serif;}
+.bh-clock-cabinet {width:min(230px,52vw);padding:0 14px 7px;border-radius:42% 42% 12px 12px / 12% 12% 6px 6px;background:linear-gradient(100deg,#452416,#8b5029 18%,#4b2819 43%,#7a4125 80%,#2f1b14);border:5px ridge #a56b36;box-shadow:inset 0 0 0 3px #29180f,0 14px 22px #2d1d1540;position:relative;}
+.bh-clock-crown {height:36px;display:flex;align-items:center;justify-content:center;color:#e7c78c;font-size:22px;text-shadow:0 2px #281509;}
+.bh-clock-face-rim {border-radius:50%;padding:7px;background:linear-gradient(135deg,#7e5229,#e2bf75,#775029,#c39450);box-shadow:0 4px 8px #1d0f0b9c,inset 0 0 0 3px #402514;}
+.bh-clock-dial {width:100%;display:block;aspect-ratio:1;filter:drop-shadow(0 2px 2px #402b21);}
+.bh-clock-neck {height:84px;margin:5px 12px 0;border:3px double #c08a51;border-radius:6px 6px 16px 16px;background:radial-gradient(ellipse at center,#4b281b,#21110d);overflow:hidden;}
+.bh-pendulum {width:2px;height:65px;background:#c6a05c;margin:0 auto;transform-origin:top;animation:bh-pendulum 2.3s ease-in-out infinite alternate;position:relative;}
+.bh-pendulum span {position:absolute;bottom:-3px;left:-13px;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#f4db94,#a56c2c 70%,#563016);border:1px solid #f5ce80;}
+.bh-clock-base {height:25px;margin:3px -7px -2px;background:linear-gradient(90deg,#29140d,#b1743d 25%,#542c1c 60%,#29140d);border-radius:4px 4px 8px 8px;border:2px solid #9a6235;color:#d9b16c;font:700 10px/19px Georgia,serif;letter-spacing:3px;}
+.bh-clock-selected {font:700 17px/1.4 Georgia,serif;color:#523326;margin:16px 0 12px;}
+.bh-clock-time-grid {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;max-width:470px;margin:0 auto 20px;}
+.bh-clock-time-grid button {padding:10px 3px!important;border:1px solid #d5b992!important;border-radius:8px!important;background:#f1e5d0!important;color:#5a392d!important;font:700 13px Georgia,serif;cursor:pointer;}
+.bh-clock-time-grid button.is-selected {background:#573225!important;color:#fff0ce!important;box-shadow:0 0 0 2px #c79a55;}
+.bh-continental {display:flex;align-items:center;gap:13px;text-align:left;width:100%;max-width:490px;margin:0 auto 12px;padding:15px!important;background:#e9dac1!important;border:2px solid #c9a778!important;border-radius:14px!important;color:#422b27!important;cursor:pointer;}
+.bh-continental.is-selected {background:#f5e6c5!important;border-color:#7b4a2a!important;box-shadow:0 0 0 2px #d5b279;}
+.bh-continental-icon {font-size:27px;}
+.bh-continental strong {display:block;font:700 17px Georgia,serif;}
+.bh-continental small {display:block;font:500 12px/1.5 system-ui,sans-serif;color:#72574d;margin-top:4px;}
+.bh-continental-check {margin-left:auto;font-size:12px;font-weight:800;color:#794d2c;}
+.bh-clock-guest-count {max-width:490px;margin:0 auto;}
+@keyframes bh-pendulum {from {transform:rotate(-15deg)}to{transform:rotate(15deg)}}
+@media(max-width:480px) {.bh-clock-section{padding:20px 10px}.bh-clock-controls{gap:7px}.bh-clock-step{min-width:49px;min-height:60px;font-size:29px}.bh-clock-step span{font-size:10px}.bh-clock-time-grid{grid-template-columns:repeat(3,1fr)}.bh-clock-cabinet{padding:0 9px 6px}.bh-clock-neck{height:60px}}
+@media(prefers-reduced-motion:reduce){.bh-pendulum{animation:none!important}}

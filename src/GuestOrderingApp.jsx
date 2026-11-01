@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const TIME_SLOTS = ['08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', 'Continental'];
+const TIME_SLOTS = ['08:00 AM', '08:15 AM', '08:30 AM', '08:45 AM', '09:00 AM', '09:15 AM', '09:30 AM', '09:45 AM', '10:00 AM', 'Continental'];
 
 const createEmptyPlate = (num) => ({
     plateNumber: num,
@@ -14,7 +14,7 @@ const createEmptyPlate = (num) => ({
 });
 
 export default function GuestOrderingApp() {
-    const [timeIndex, setTimeIndex] = useState(0);
+    const [timeIndex, setTimeIndex] = useState(2);
     const [guestCount, setGuestCount] = useState(1);
     const [plates, setPlates] = useState([createEmptyPlate(1), createEmptyPlate(2)]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,9 +74,10 @@ export default function GuestOrderingApp() {
         setTimeIndex((prev) => (prev + dir + TIME_SLOTS.length) % TIME_SLOTS.length);
     };
 
-    const [clockLeft, clockRight] = isContinental
-        ? ['CO', 'NT']
-        : requestedTime.replace(' AM', '').split(':');
+    const clockHour = isContinental ? 8 : Number(requestedTime.slice(0, 2));
+    const clockMinute = isContinental ? 0 : Number(requestedTime.slice(3, 5));
+    const minuteAngle = clockMinute * 6;
+    const hourAngle = (clockHour % 12) * 30 + clockMinute * 0.5;
 
     const [existingOrderId, setExistingOrderId] = useState(null);
     const [orderLookupDone, setOrderLookupDone] = useState(false);
@@ -528,114 +529,37 @@ export default function GuestOrderingApp() {
 
                 {/* DARK NAVY SLATE CONTAINER */}
                 <div className="bh-order-shell" style={darkNavyShellStyle}><div className="bh-menu-intro"><span className="bh-kicker">THE BISSING HOUSE · BREAKFAST SERVICE</span><h2>Your morning, made to order.</h2><p>Choose your breakfast time, then build a plate just the way you like it.</p><div className="bh-steps"><span><b>01</b> Time & guests</span><span><b>02</b> Your breakfast</span><span><b>03</b> Send to kitchen</span></div></div>
-                    {/* SPLIT-FLAP DIGITAL TIME SELECTOR CARD */}
-                    <div style={{ ...innerNavyCardStyle, textAlign: 'center', padding: '20px 22px' }}>
-                        <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', color: '#ffffff', marginBottom: '14px' }}>
-                            Select Time
+                    {/* Edwardian mantel / baby grandfather clock: 1909-inspired, accessible controls */}
+                    <section className="bh-clock-section" aria-label="Choose breakfast serving time">
+                      <div className="bh-clock-heading"><span className="bh-kicker">A GOOD MORNING BEGINS HERE</span><h2>When shall we serve you?</h2><p>Turn the hands in quarter-hour steps, or choose our early continental breakfast.</p></div>
+                      <div className="bh-clock-controls">
+                        <button className="bh-clock-step" type="button" onClick={() => cycleTime(-1)} aria-label="Earlier breakfast time">‹<span>Earlier</span></button>
+                        <div className="bh-clock-cabinet">
+                          <div className="bh-clock-crown"><span>✦</span></div>
+                          <div className="bh-clock-face-rim">
+                            <svg viewBox="0 0 240 240" className="bh-clock-dial" role="img" aria-label={isContinental ? 'Continental breakfast selected' : `Clock set to ${requestedTime}`}>
+                              <circle cx="120" cy="120" r="112" fill="#e9d6ad" stroke="#a7793b" strokeWidth="3" />
+                              <circle cx="120" cy="120" r="103" fill="#f8edd1" stroke="#bda071" strokeWidth="1" />
+                              {Array.from({length:60}, (_, i) => <line key={i} x1="120" y1={i%5===0?21:17} x2="120" y2="12" stroke="#65452c" strokeWidth={i%5===0?2:0.7} transform={`rotate(${i*6} 120 120)`} />)}
+                              {['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'].map((numeral,i) => <text key={numeral} x={120+79*Math.sin(i*Math.PI/6)} y={126-79*Math.cos(i*Math.PI/6)} textAnchor="middle" fontFamily="Georgia,serif" fontWeight="bold" fontSize="17" fill="#4b3024">{numeral}</text>)}
+                              <text x="120" y="82" textAnchor="middle" fontFamily="Georgia,serif" fontSize="9" letterSpacing="2" fill="#84603d">BISSING HOUSE</text>
+                              <text x="120" y="163" textAnchor="middle" fontFamily="Georgia,serif" fontSize="9" fill="#84603d">EST. 1909</text>
+                              <g style={{transition:'transform 350ms ease'}} transform={`rotate(${hourAngle} 120 120)`}><path d="M120 136 L116 120 L118 66 L120 54 L122 66 L124 120 Z" fill="#38251d" /></g>
+                              <g style={{transition:'transform 350ms ease'}} transform={`rotate(${minuteAngle} 120 120)`}><path d="M120 140 L117 120 L119 37 L120 28 L121 37 L123 120 Z" fill="#38251d" /></g>
+                              <circle cx="120" cy="120" r="5" fill="#ad7a36" stroke="#51331e" strokeWidth="1.5" />
+                            </svg>
+                          </div>
+                          <div className="bh-clock-neck"><div className="bh-pendulum"><span /></div></div>
+                          <div className="bh-clock-base"><span>1909</span></div>
                         </div>
-
-                        <div style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '14px',
-                            backgroundColor: '#070a12',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            borderRadius: '12px',
-                            padding: '14px 22px',
-                            boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.85)'
-                        }}>
-                            <button
-                                type="button"
-                                onClick={() => cycleTime(-1)}
-                                aria-label="Earlier time"
-                                style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '50%',
-                                    border: '1px solid rgba(255,255,255,0.14)',
-                                    backgroundColor: 'rgba(255,255,255,0.04)',
-                                    color: '#cbd5e1',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                ‹
-                            </button>
-
-                            <div style={{
-                                position: 'relative',
-                                backgroundColor: '#121622',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '8px',
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontFamily: "'Courier New', monospace",
-                                fontSize: '32px',
-                                fontWeight: '800',
-                                color: '#ffffff',
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.6)'
-                            }}>
-                                {clockLeft}
-                                <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: 'rgba(0,0,0,0.65)' }} />
-                            </div>
-
-                            <div style={{ color: '#d4af37', fontSize: '24px', fontWeight: '800', lineHeight: 1 }}>
-                                :
-                            </div>
-
-                            <div style={{
-                                position: 'relative',
-                                backgroundColor: '#121622',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '8px',
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontFamily: "'Courier New', monospace",
-                                fontSize: '32px',
-                                fontWeight: '800',
-                                color: '#ffffff',
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.6)'
-                            }}>
-                                {clockRight}
-                                <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: 'rgba(0,0,0,0.65)' }} />
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => cycleTime(1)}
-                                aria-label="Later time"
-                                style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '50%',
-                                    border: '1px solid rgba(255,255,255,0.14)',
-                                    backgroundColor: 'rgba(255,255,255,0.04)',
-                                    color: '#cbd5e1',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                ›
-                            </button>
-                        </div>
-
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#94a3b8' }}>
-                            {isContinental ? 'Early Continental (Before 8:30 AM)' : `${requestedTime} Service`}
-                        </div>
-
+                        <button className="bh-clock-step" type="button" onClick={() => cycleTime(1)} aria-label="Later breakfast time">›<span>Later</span></button>
+                      </div>
+                      <div className="bh-clock-selected" aria-live="polite">{isContinental ? 'Continental breakfast selected' : `${requestedTime} · Made-to-order breakfast`}</div>
+                      <div className="bh-clock-time-grid" aria-label="Available serving times">
+                        {TIME_SLOTS.slice(0,-1).map((time, i) => <button key={time} type="button" className={timeIndex===i?'is-selected':''} aria-pressed={timeIndex===i} onClick={()=>setTimeIndex(i)}>{time.replace(' AM','')}</button>)}
+                      </div>
+                      <button type="button" className={`bh-continental ${isContinental?'is-selected':''}`} aria-pressed={isContinental} onClick={()=>setTimeIndex(TIME_SLOTS.length-1)}><span className="bh-continental-icon">☕</span><span><strong>Early Continental Breakfast</strong><small>Help yourself in the dining room before 8:30 AM · No serving time needed</small></span><span className="bh-continental-check">{isContinental?'✓':'Select'}</span></button>
+                      <div className="bh-clock-guest-count">
                         {!isContinental && (
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                                 <button
@@ -672,7 +596,8 @@ export default function GuestOrderingApp() {
                                 </button>
                             </div>
                         )}
-                    </div>
+                      </div>
+                    </section>
 
                     {isContinental ? (
                         <div style={innerNavyCardStyle}>
