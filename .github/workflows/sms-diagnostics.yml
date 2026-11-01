@@ -1,0 +1,28 @@
+name: SMS diagnostics
+on:
+  push:
+    branches: [fix/sms-travis-only-diagnostics]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BHBREAKFASTMENU }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Inspect configuration without exposing credentials
+        shell: bash
+        run: |
+          gcloud functions describe api --gen2 --region us-central1 --project bhbreakfastmenu --format=json > /tmp/function.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/function.json'))
+          s=d.get('serviceConfig',{})
+          print(json.dumps({'state':d.get('state'),'runtime':d.get('buildConfig',{}).get('runtime'),'uri':s.get('uri'),'environment_names':list(s.get('environmentVariables',{})),'secret_names':[v.get('key') for v in s.get('secretEnvironmentVariables',[])]},indent=2))
+          PY
+      - name: Read SMS diagnostic logs
+        run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="api" AND (textPayload:"SMS" OR textPayload:"notification")' --project bhbreakfastmenu --limit=20 --freshness=14d --format='table(timestamp,severity,textPayload)'
