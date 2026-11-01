@@ -276,3 +276,42 @@ body { background:#151016; }
 }
 .bh-fruit-notice strong {font-size: 15px; font-weight: 800;}
 .bh-fruit-notice span {font-weight: 600;}
+
+/* Craftsman's tall-case clock: pale quarter-sawn white oak, cherry marquetry, brass, carved ornament. */
+.bh-clock-section {background:rgba(255,250,242,.97)!important;}
+.bh-heritage-clock {
+  width: min(270px, 58vw);
+  min-width: 0;
+  padding: 7px 10px 9px;
+  border: 5px solid #a8794e;
+  border-radius: 48% 48% 15px 15px / 5% 5% 2% 2%;
+  background: repeating-linear-gradient(94deg,rgba(120,83,51,.055) 0 1px,transparent 1px 9px),
+    linear-gradient(100deg,#9e7953 0%,#e9d0a7 8%,#f3dfba 26%,#ccb087 48%,#ead5b0 74%,#a58159 100%);
+  box-shadow: inset 0 0 0 3px #efdbb6,inset 0 0 0 6px #955738,inset 0 0 0 8px #f5e3c2,0 16px 26px #3a261d52;
+  position: relative;
+}
+.bh-heritage-clock:before,.bh-heritage-clock:after {content:'';position:absolute;top:22px;bottom:31px;width:4px;background:linear-gradient(#653528,#d9a26c,#68392d);z-index:1;}
+.bh-heritage-clock:before {left:4px;} .bh-heritage-clock:after {right:4px;}
+.bh-clock-finial {position:absolute;top:-15px;width:15px;height:21px;border-radius:65% 65% 35% 35%;background:radial-gradient(at 25% 25%,#f8deb8,#8c4b32 70%);border:2px solid #70412d;box-shadow:0 2px 2px #49322040;}
+.bh-clock-finial--left {left:12px;}.bh-clock-finial--right {right:12px;}
+.bh-clock-pediment {height:45px;display:flex;justify-content:space-evenly;align-items:center;margin:2px 7px 5px;border:3px double #a96b4b;border-radius:52% 52% 5px 5px;background:repeating-linear-gradient(10deg,rgba(91,54,36,.08) 0 1px,transparent 1px 8px),linear-gradient(#ebd4af,#bc936f);color:#603c2b;box-shadow:inset 0 0 0 2px #efdbb8;}
+.bh-clock-pediment-name {font:700 10px/1.2 'Palatino Linotype',Georgia,serif;letter-spacing:.12em;white-space:nowrap;}
+.bh-clock-scroll {font:26px/1 Georgia,serif;color:#8c5039;}
+.bh-clock-inlay-frame {display:flex;align-items:stretch;gap:3px;padding:5px 1px 7px;border:3px double #8b4c33;background:linear-gradient(90deg,#b48360,#f3e2bf 22%,#d3b38b 79%,#a87653);border-radius:11px 11px 4px 4px;box-shadow:inset 0 0 0 2px #fbe9c9;}
+.bh-clock-pilaster {flex:0 0 13px;border:1px solid #7d4838;border-radius:7px;background:repeating-linear-gradient(90deg,#bb906d 0 2px,#e6d1ab 2px 4px,#9b664b 4px 6px);box-shadow:inset 1px 0 2px #fff1cc;}
+.bh-clock-center {min-width:0;flex:1;}
+.bh-heritage-clock .bh-clock-face-rim {padding:7px;border-radius:50%;background:conic-gradient(from 16deg,#75472e,#deb685,#7c4b36,#ebc890,#75472e);border:2px solid #6c3f30;box-shadow:0 3px 10px #39271c70,inset 0 0 0 3px #ead3a9;}
+.bh-clock-dial {filter:none;overflow:visible;}
+.bh-hand {cursor:pointer;outline:none;transition:filter .18s ease;}
+.bh-hand-glow {opacity:.85;transition:opacity .25s ease;}
+.bh-hand:hover .bh-hand-glow,.bh-hand:focus .bh-hand-glow {opacity:1;}
+.bh-hand:hover,.bh-hand:focus {filter:drop-shadow(0 0 5px #f0a43f);}
+.bh-hand:focus-visible .bh-hand-hit {stroke:#b7752d;stroke-opacity:.25;}
+.bh-clock-time-readout {margin:7px auto 5px;width:87%;padding:5px 0;border:2px solid #875139;border-radius:4px;background:linear-gradient(#6d4639,#3d2a26);color:#ffe1a1;font:700 13px/1.1 Georgia,serif;letter-spacing:.08em;box-shadow:inset 0 0 0 1px #c18b54;}
+.bh-heritage-clock .bh-clock-neck {height:100px;margin:0 5px;border:5px double #8e553b;border-radius:5px;background:repeating-linear-gradient(25deg,rgba(173,104,65,.15) 0 2px,transparent 2px 8px),linear-gradient(90deg,#a37656,#f1dfb9 12%,#dec7a2 47%,#f3e4c7 86%,#9f7754);position:relative;box-shadow:inset 0 0 0 3px #f6dfb7,inset 0 0 0 7px #a8694d;}
+.bh-heritage-clock .bh-clock-neck:before {content:'';position:absolute;inset:11px 16px;border-radius:47% 47% 10px 10px;border:3px solid #ac734f;background:radial-gradient(ellipse at center,#54362d,#2e211e 80%);box-shadow:0 0 0 2px #edd1a6;}
+.bh-heritage-clock .bh-pendulum {z-index:1;height:70px;}
+.bh-clock-marquetry {margin:6px 9px 4px;height:20px;display:flex;align-items:center;justify-content:space-evenly;background:linear-gradient(90deg,#9d6146,#f0d6a9,#965c43);border:2px solid #854b39;color:#703927;letter-spacing:4px;font-size:16px;box-shadow:inset 0 0 0 2px #dfb58e;}
+.bh-heritage-clock .bh-clock-base {height:29px;margin:1px -7px -3px;border-radius:3px 3px 10px 10px;border:3px ridge #97603d;background:linear-gradient(90deg,#76503b,#dfbb8d 18%,#f1d9b0 50%,#bc8f69 82%,#76503b);color:#573727;font:700 9px/22px Georgia,serif;letter-spacing:.16em;}
+@media(max-width:490px){.bh-clock-controls{gap:5px}.bh-heritage-clock{width:min(246px,60vw);padding:7px 7px 8px}.bh-clock-pilaster{flex-basis:9px}.bh-clock-scroll{font-size:19px}.bh-clock-pediment-name{font-size:8px}.bh-clock-step{min-width:43px}.bh-heritage-clock .bh-clock-neck{height:80px}.bh-clock-marquetry{margin-inline:4px}}
+@media(prefers-reduced-motion:reduce){.bh-hand,.bh-hand-glow{transition:none}}

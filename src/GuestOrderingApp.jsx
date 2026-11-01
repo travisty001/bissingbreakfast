@@ -493,23 +493,54 @@ export default function GuestOrderingApp() {
                       <div className="bh-clock-heading"><h2>What time shall we serve you?</h2></div>
                       <div className="bh-clock-controls">
                         <button className="bh-clock-step" type="button" onClick={() => cycleTime(-1)} aria-label="Earlier breakfast time">‹<span>Earlier</span></button>
-                        <div className="bh-clock-cabinet">
-                          <div className="bh-clock-crown"><span>✦</span></div>
-                          <div className="bh-clock-face-rim">
-                            <svg viewBox="0 0 240 240" className="bh-clock-dial" role="img" aria-label={isContinental ? 'Continental breakfast selected' : `Clock set to ${requestedTime}`}>
-                              <circle cx="120" cy="120" r="112" fill="#e9d6ad" stroke="#a7793b" strokeWidth="3" />
-                              <circle cx="120" cy="120" r="103" fill="#f8edd1" stroke="#bda071" strokeWidth="1" />
-                              {Array.from({length:60}, (_, i) => <line key={i} x1="120" y1={i%5===0?21:17} x2="120" y2="12" stroke="#65452c" strokeWidth={i%5===0?2:0.7} transform={`rotate(${i*6} 120 120)`} />)}
-                              {['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'].map((numeral,i) => <text key={numeral} x={120+79*Math.sin(i*Math.PI/6)} y={126-79*Math.cos(i*Math.PI/6)} textAnchor="middle" fontFamily="Georgia,serif" fontWeight="bold" fontSize="17" fill="#4b3024">{numeral}</text>)}
-                              <text x="120" y="82" textAnchor="middle" fontFamily="Georgia,serif" fontSize="9" letterSpacing="2" fill="#84603d">BISSING HOUSE</text>
-                              <text x="120" y="163" textAnchor="middle" fontFamily="Georgia,serif" fontSize="9" fill="#84603d">EST. 1909</text>
-                              <g style={{transition:'transform 350ms ease'}} transform={`rotate(${hourAngle} 120 120)`}><path d="M120 136 L116 120 L118 66 L120 54 L122 66 L124 120 Z" fill="#38251d" /></g>
-                              <g style={{transition:'transform 350ms ease'}} transform={`rotate(${minuteAngle} 120 120)`}><path d="M120 140 L117 120 L119 37 L120 28 L121 37 L123 120 Z" fill="#38251d" /></g>
-                              <circle cx="120" cy="120" r="5" fill="#ad7a36" stroke="#51331e" strokeWidth="1.5" />
-                            </svg>
+                        <div className="bh-clock-cabinet bh-heritage-clock">
+                          <div className="bh-clock-finial bh-clock-finial--left" aria-hidden="true" />
+                          <div className="bh-clock-finial bh-clock-finial--right" aria-hidden="true" />
+                          <div className="bh-clock-pediment" aria-hidden="true">
+                            <span className="bh-clock-scroll">❦</span>
+                            <span className="bh-clock-pediment-name">BISSING · 1909</span>
+                            <span className="bh-clock-scroll">❦</span>
                           </div>
-                          <div className="bh-clock-neck"><div className="bh-pendulum"><span /></div></div>
-                          <div className="bh-clock-base"><span>1909</span></div>
+                          <div className="bh-clock-inlay-frame">
+                            <span className="bh-clock-pilaster bh-clock-pilaster--left" aria-hidden="true" />
+                            <div className="bh-clock-center">
+                              <div className="bh-clock-face-rim">
+                                <svg viewBox="0 0 240 240" className="bh-clock-dial" role="group" aria-label={isContinental ? 'Continental breakfast selected' : `Breakfast clock set to ${requestedTime}. Click either glowing hand to adjust the time.`}>
+                                  <defs>
+                                    <radialGradient id="heritageIvory"><stop offset="0" stopColor="#fff9e8"/><stop offset=".81" stopColor="#f0e4c8"/><stop offset="1" stopColor="#d6bf90"/></radialGradient>
+                                    <filter id="clockHandGlow" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="3.1" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                                  </defs>
+                                  <circle cx="120" cy="120" r="113" fill="#a86b45" stroke="#603b29" strokeWidth="2.4" />
+                                  <circle cx="120" cy="120" r="106" fill="url(#heritageIvory)" stroke="#e4c894" strokeWidth="3" />
+                                  <circle cx="120" cy="120" r="97" fill="none" stroke="#956e40" strokeWidth=".85" />
+                                  <circle cx="120" cy="120" r="90" fill="none" stroke="#bda176" strokeWidth=".7" strokeDasharray="2 3" />
+                                  {Array.from({length:60}, (_,i) => <line key={i} x1="120" y1={i%5===0?19:15} x2="120" y2={i%5===0?29:21} transform={`rotate(${i*6} 120 120)`} stroke="#69503b" strokeWidth={i%5===0?1.8:.7}/>)}
+                                  {['XII','I','II','III','IV','V','VI','VII','VIII','IX','X','XI'].map((n,i) => <text key={n} x={120+76*Math.sin(i*Math.PI/6)} y={125-76*Math.cos(i*Math.PI/6)} textAnchor="middle" fontFamily="'Palatino Linotype', 'Book Antiqua', Georgia, serif" fontWeight="bold" fontSize="18" fill="#583927">{n}</text>)}
+                                  <path d="M91 91 Q120 80 149 91 M91 149 Q120 160 149 149" fill="none" stroke="#ad885f" strokeWidth=".8"/>
+                                  <text x="120" y="85" textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" letterSpacing="1.5" fill="#7d5137">BISSING HOUSE</text>
+                                  <text x="120" y="164" textAnchor="middle" fontFamily="Georgia,serif" fontSize="8" letterSpacing="1.3" fill="#7d5137">HAYS · KANSAS</text>
+                                  <g className="bh-hand bh-hand--hour" role="button" tabIndex={0} aria-label="Move breakfast time 15 minutes earlier" onClick={() => cycleTime(-1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleTime(-1); } }} transform={`rotate(${hourAngle} 120 120)`}>
+                                    <path d="M120 135 L120 57" stroke="transparent" strokeWidth="28" strokeLinecap="round" className="bh-hand-hit"/>
+                                    <path d="M120 132 L114.5 116 L115 84 Q120 75 125 84 L125.5 116 Z" fill="#6f4036" stroke="#2f211d" strokeWidth="1.8"/>
+                                    <path d="M120 111 L118 88 L120 79 L122 88 Z" fill="#e7af63" filter="url(#clockHandGlow)" className="bh-hand-glow"/>
+                                    <circle cx="120" cy="103" r="2.6" fill="#fff0bd"/>
+                                  </g>
+                                  <g className="bh-hand bh-hand--minute" role="button" tabIndex={0} aria-label="Move breakfast time 15 minutes later" onClick={() => cycleTime(1)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleTime(1); } }} transform={`rotate(${minuteAngle} 120 120)`}>
+                                    <path d="M120 139 L120 33" stroke="transparent" strokeWidth="22" strokeLinecap="round" className="bh-hand-hit"/>
+                                    <path d="M120 139 L115 119 L116.3 65 L120 39 L123.7 65 L125 119 Z" fill="#58362d" stroke="#2f211d" strokeWidth="1.6"/>
+                                    <path d="M120 106 L118.2 65 L120 46 L121.8 65 Z" fill="#f5cb83" filter="url(#clockHandGlow)" className="bh-hand-glow"/>
+                                  </g>
+                                  <circle cx="120" cy="120" r="6" fill="#b27d42" stroke="#4e301e" strokeWidth="1.5" pointerEvents="none"/>
+                                  <circle cx="120" cy="120" r="2" fill="#fff0c8" pointerEvents="none"/>
+                                </svg>
+                              </div>
+                              <div className="bh-clock-time-readout" aria-live="polite">{isContinental ? 'CONTINENTAL' : requestedTime}</div>
+                              <div className="bh-clock-neck"><div className="bh-pendulum"><span /></div></div>
+                            </div>
+                            <span className="bh-clock-pilaster bh-clock-pilaster--right" aria-hidden="true" />
+                          </div>
+                          <div className="bh-clock-marquetry" aria-hidden="true"><span>◆</span><span>❧</span><span>◆</span></div>
+                          <div className="bh-clock-base"><span>HANDCRAFTED · 1909</span></div>
                         </div>
                         <button className="bh-clock-step" type="button" onClick={() => cycleTime(1)} aria-label="Later breakfast time">›<span>Later</span></button>
                       </div>
