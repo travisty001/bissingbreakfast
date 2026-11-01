@@ -285,7 +285,7 @@ export default function GuestOrderingApp() {
 
     // --- SHARED VISUAL STYLES ---
     const pageWrapperStyle = (bg) => ({
-        backgroundImage: `linear-gradient(rgba(8, 10, 15, 0.58), rgba(8, 10, 15, 0.72)), url('${bg}')`,
+        backgroundImage: `linear-gradient(120deg, rgba(24, 13, 24, 0.86), rgba(40, 23, 31, 0.68)), url('${bg}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
@@ -298,38 +298,38 @@ export default function GuestOrderingApp() {
     });
 
     const columnStyle = {
-        maxWidth: '580px',
+        maxWidth: '760px',
         margin: '0 auto'
     };
 
     const frostedHeaderStyle = {
-        backgroundColor: 'rgba(68, 58, 50, 0.52)',
+        backgroundColor: 'rgba(43, 24, 34, 0.80)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         border: '1px solid rgba(255, 255, 255, 0.16)',
-        borderRadius: '4px',
-        padding: '32px 24px 28px 24px',
+        borderRadius: '24px',
+        padding: '42px 28px 38px 28px',
         textAlign: 'center',
         marginBottom: '18px',
         boxShadow: '0 20px 45px rgba(0, 0, 0, 0.55)'
     };
 
     const darkNavyShellStyle = {
-        backgroundColor: 'rgba(10, 15, 26, 0.94)',
+        backgroundColor: 'rgba(250, 244, 233, 0.98)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255, 255, 255, 0.09)',
-        borderRadius: '4px',
-        padding: '18px',
+        borderRadius: '22px',
+        padding: '24px',
         boxShadow: '0 24px 55px rgba(0, 0, 0, 0.75)',
-        color: '#f8fafc'
+        color: '#30212a'
     };
 
     const innerNavyCardStyle = {
-        backgroundColor: 'rgba(16, 23, 38, 0.9)',
+        backgroundColor: '#fffaf2',
         border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '6px',
-        padding: '24px 22px',
+        borderRadius: '16px',
+        padding: '26px 24px',
         marginBottom: '16px'
     };
 
@@ -347,9 +347,9 @@ export default function GuestOrderingApp() {
         textAlign: 'left',
         padding: '16px 18px',
         borderRadius: '8px',
-        backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.14)' : 'rgba(11, 17, 30, 0.85)',
+        backgroundColor: isSelected ? '#efe1c8' : '#f8f1e7',
         border: isSelected ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
-        color: '#ffffff',
+        color: '#34202d',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         boxShadow: isSelected ? '0 0 18px rgba(212, 175, 55, 0.18)' : 'none'
@@ -361,9 +361,9 @@ export default function GuestOrderingApp() {
         gap: '12px',
         padding: '13px 16px',
         borderRadius: '8px',
-        backgroundColor: isChecked ? 'rgba(212, 175, 55, 0.14)' : 'rgba(11, 17, 30, 0.85)',
+        backgroundColor: isChecked ? '#efe1c8' : '#f8f1e7',
         border: isChecked ? '1.5px solid #d4af37' : '1px solid rgba(255, 255, 255, 0.1)',
-        color: '#ffffff',
+        color: '#34202d',
         fontSize: '14px',
         fontWeight: '600',
         cursor: 'pointer',
@@ -419,7 +419,7 @@ export default function GuestOrderingApp() {
                         </span>
                     </header>
 
-                    <div className="bh-order-shell" style={darkNavyShellStyle}>
+                    <div className="bh-order-shell" style={darkNavyShellStyle}><div className="bh-menu-intro"><span className="bh-kicker">THE BISSING HOUSE · BREAKFAST SERVICE</span><h2>Your morning, made to order.</h2><p>Choose your breakfast time, then build a plate just the way you like it.</p><div className="bh-steps"><span><b>01</b> Time & guests</span><span><b>02</b> Your breakfast</span><span><b>03</b> Send to kitchen</span></div></div>
                         <div style={{ ...innerNavyCardStyle, textAlign: 'center', border: '1px solid rgba(212, 175, 55, 0.4)' }}>
                             <h2 style={{ color: '#d4af37', fontFamily: "Georgia, 'Merriweather', serif", marginTop: 0, marginBottom: '10px', fontSize: '26px' }}>
                                 Order Confirmed
@@ -527,7 +527,7 @@ export default function GuestOrderingApp() {
                 </header>
 
                 {/* DARK NAVY SLATE CONTAINER */}
-                <div className="bh-order-shell" style={darkNavyShellStyle}>
+                <div className="bh-order-shell" style={darkNavyShellStyle}><div className="bh-menu-intro"><span className="bh-kicker">THE BISSING HOUSE · BREAKFAST SERVICE</span><h2>Your morning, made to order.</h2><p>Choose your breakfast time, then build a plate just the way you like it.</p><div className="bh-steps"><span><b>01</b> Time & guests</span><span><b>02</b> Your breakfast</span><span><b>03</b> Send to kitchen</span></div></div>
                     {/* SPLIT-FLAP DIGITAL TIME SELECTOR CARD */}
                     <div style={{ ...innerNavyCardStyle, textAlign: 'center', padding: '20px 22px' }}>
                         <div style={{ fontFamily: "Georgia, 'Merriweather', serif", fontSize: '15px', fontWeight: '700', color: '#ffffff', marginBottom: '14px' }}>

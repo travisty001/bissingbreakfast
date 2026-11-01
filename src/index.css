@@ -101,3 +101,27 @@ body { background:#151016; }
 @keyframes bh-breathe { 0%,100% {filter:drop-shadow(0 0 0 rgba(203,168,108,0))} 50% {filter:drop-shadow(0 0 12px rgba(203,168,108,.45))} }
 @media(prefers-reduced-motion:reduce) { .bh-logo {animation:none} *,*:before,*:after {scroll-behavior:auto!important} }
 @media(max-width:600px) { .bh-hero h1 {font-size:32px!important} .bh-admin > header {padding:16px!important} }
+
+/* V3 second pass — intentionally different from the original dark slate interface */
+.bh-guest .bh-order-shell {color:#34202d!important;}
+.bh-guest .bh-order-shell > div {background:#fffaf2!important;border-color:#e5d4bb!important;box-shadow:0 8px 28px rgba(67,40,39,.06);}
+.bh-guest .bh-order-shell h2,.bh-guest .bh-order-shell h3 {color:#3c2633!important;font-family:Georgia,'Merriweather',serif!important;}
+.bh-guest .bh-order-shell button {border-radius:12px!important;}
+.bh-guest .bh-order-shell button[style*="background-color: rgba(11"] {background:#f7efe3!important;color:#3c2633!important;}
+.bh-guest .bh-order-shell label {color:#3c2633;}
+.bh-menu-intro {text-align:center!important;padding:26px 18px 32px!important;margin-bottom:22px!important;background:transparent!important;border:0!important;box-shadow:none!important;}
+.bh-kicker {font:700 10px/1.5 system-ui,sans-serif;letter-spacing:.22em;color:#a57840;}
+.bh-menu-intro h2,.bh-kitchen-intro h2 {font:normal clamp(27px,5vw,42px)/1.12 Georgia,serif!important;margin:12px 0!important;letter-spacing:-.025em;}
+.bh-menu-intro p,.bh-kitchen-intro p {color:#826d71;font-size:14px;line-height:1.6;margin:0 auto 22px;max-width:420px;}
+.bh-steps {display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.bh-steps span {background:#f2e6d4;border:1px solid #e4d1b4;border-radius:99px;padding:9px 12px;font-size:11px;font-weight:700;color:#5b4145;}
+.bh-steps b {color:#a57840;margin-right:5px;}
+.bh-hero {border-radius:24px!important;}
+.bh-admin {background:#f6eee3!important;color:#36212d!important;}
+.bh-admin > header {background:#2f1d2b!important;border-bottom:4px solid #cba86c!important;}
+.bh-admin main {background:linear-gradient(180deg,#f6eee3,#eee1d0);}
+.bh-kitchen-intro {padding:24px 8px 30px;}
+.bh-kitchen-intro h2 {color:#3b2532!important;}
+.bh-kitchen-intro p {margin:0;color:#7a6069;}
+.bh-admin main > div.text-xl {color:#785e65!important;}
+@media(max-width:600px) {.bh-guest .bh-order-shell {padding:12px!important}.bh-menu-intro {padding:22px 5px!important}.bh-steps span {font-size:10px;padding:8px}.bh-kitchen-intro {padding:20px 0}}

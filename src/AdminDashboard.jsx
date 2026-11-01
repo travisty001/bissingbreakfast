@@ -264,7 +264,7 @@ export default function AdminDashboard() {
         {sortedGroups.length} order{sortedGroups.length === 1 ? '' : 's'} scheduled
       </div>
 
-      <main className="flex-1 p-6 pt-2 overflow-y-auto">
+      <main className="flex-1 p-6 pt-2 overflow-y-auto"><div className="bh-kitchen-intro"><span className="bh-kicker">THE BISSING HOUSE · MORNING SERVICE</span><h2>Breakfast at a glance.</h2><p>Room orders, serving times, and kitchen details in one place.</p></div>
         {loading ? (
           <div className="text-xl font-bold text-[#888] w-full text-center pt-10">Loading Orders...</div>
         ) : errorMsg ? (
