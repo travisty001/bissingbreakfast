@@ -125,3 +125,16 @@ body { background:#151016; }
 .bh-kitchen-intro p {margin:0;color:#7a6069;}
 .bh-admin main > div.text-xl {color:#785e65!important;}
 @media(max-width:600px) {.bh-guest .bh-order-shell {padding:12px!important}.bh-menu-intro {padding:22px 5px!important}.bh-steps span {font-size:10px;padding:8px}.bh-kitchen-intro {padding:20px 0}}
+
+/* Kitchen readability: larger, bold, small-cap typography throughout dashboard. */
+.bh-admin { font-variant-caps: small-caps; font-weight: 700; font-size: 17px; letter-spacing: .025em; }
+.bh-admin h1 { font-size: clamp(27px, 3vw, 36px)!important; font-weight: 800!important; }
+.bh-admin h2 { font-size: clamp(25px, 2.5vw, 32px)!important; font-weight: 800!important; }
+.bh-admin h3 { font-size: 22px!important; font-weight: 800!important; }
+.bh-admin p, .bh-admin span, .bh-admin button, .bh-admin input, .bh-admin label { font-variant-caps: small-caps; font-weight: 700; }
+.bh-admin .text-\\[9px\\], .bh-admin .text-\\[10px\\], .bh-admin .text-xs { font-size: 14px!important; }
+.bh-admin .text-sm { font-size: 17px!important; }
+.bh-admin .text-lg { font-size: 21px!important; }
+.bh-admin .bh-kicker { font-size: 14px!important; font-weight: 800!important; }
+.bh-admin .bh-kitchen-intro p { font-size: 18px; font-weight: 700; }
+@media(max-width:600px) { .bh-admin {font-size:16px} .bh-admin h2 {font-size:25px!important} }
