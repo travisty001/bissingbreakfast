@@ -171,7 +171,8 @@ body { background:#151016; }
 
 /* Room masthead: just the centered logo, filling a restrained cream-glass header. */
 .bh-guest .bh-hero--room {
-  width: min(100%, 400px);
+  width: 100%;
+  box-sizing: border-box;
   height: 156px;
   margin: 0 auto 18px !important;
   padding: 0 !important;
@@ -210,5 +211,10 @@ body { background:#151016; }
   border: 0 !important;
 }
 @media (max-width: 480px) {
-  .bh-guest .bh-hero--room { width: min(88%, 350px); height: 136px; }
+  .bh-guest .bh-hero--room { width: 100%; height: 136px; }
+}
+
+/* Allow full-bleed room photography to scroll naturally on narrow phones. */
+@media(max-width:600px) {
+  .bh-guest { background-attachment: scroll !important; }
 }

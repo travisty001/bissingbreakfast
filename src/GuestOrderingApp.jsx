@@ -55,16 +55,16 @@ export default function GuestOrderingApp() {
 
     let roomName = 'Bissing';
     let displayRoomName = 'BISSING SUITE';
-    let bgImage = '/bissing.jpg';
+    let bgImage = '/room-backgrounds/bissing-suite-2025.webp';
 
     if (lowerRoom.includes('tea')) {
         roomName = 'TeaRose';
         displayRoomName = 'TEA ROSE SUITE';
-        bgImage = '/tearose.jpg';
+        bgImage = '/room-backgrounds/tea-rose-suite-2025.webp';
     } else if (lowerRoom.includes('basgall')) {
         roomName = 'Basgall';
         displayRoomName = 'BASGALL SUITE';
-        bgImage = '/basgall.jpg';
+        bgImage = '/room-backgrounds/basgall-suite-2025.webp';
     }
 
     const requestedTime = TIME_SLOTS[timeIndex];
@@ -286,9 +286,9 @@ export default function GuestOrderingApp() {
 
     // --- SHARED VISUAL STYLES ---
     const pageWrapperStyle = (bg) => ({
-        backgroundImage: `linear-gradient(120deg, rgba(24, 13, 24, 0.86), rgba(40, 23, 31, 0.68)), url('${bg}')`,
+        backgroundImage: `linear-gradient(180deg, rgba(26, 15, 21, 0.27), rgba(26, 15, 21, 0.50)), url('${bg}')`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundPosition: 'center 37%',
         backgroundAttachment: 'fixed',
         minHeight: '100vh',
         width: '100vw',
