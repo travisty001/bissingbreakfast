@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const nodemailer = require('nodemailer');
+const { sendOrderAlert, testOnly } = require('./sms');
 
 admin.initializeApp();
 const dbFirestore = admin.firestore();
@@ -28,12 +29,12 @@ async function getSmsEnabled() {
     } catch (err) {
         console.error("Could not read SMS settings:", err.message);
     }
-    return true;
+    return false;
 }
 
 app.get('/api/admin/sms-status', async (req, res) => {
     const enabled = await getSmsEnabled();
-    res.json({ enabled });
+    res.json({ enabled, test_only: testOnly() });
 });
 
 app.put('/api/admin/sms-toggle', async (req, res) => {
@@ -168,38 +169,14 @@ app.post('/api/orders', async (req, res) => {
             docRef = await dbFirestore.collection('orders').add(orderDoc);
         }
 
-        // --- SMS NOTIFICATION ENGINE ---
-        if (await getSmsEnabled() && process.env.SMS_GMAIL_USER && process.env.SMS_GMAIL_APP_PASSWORD) {
-            try {
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: process.env.SMS_GMAIL_USER, 
-                        pass: process.env.SMS_GMAIL_APP_PASSWORD
-}
-                });
+        // Await transport completion before ending the function request.
+        const sms = await sendOrderAlert({
+            enabled: await getSmsEnabled(),
+            orderId: docRef.id,
+            text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
+        }, { mailer: nodemailer });
 
-                const mailOptions = {
-                    from: process.env.SMS_GMAIL_USER,
-                    to: [
-                        '7852593556@vtext.com',      // Michelle
-                        '2143358780@tmomail.net',    // Casey
-                        '7852596900@vtext.com'       // Travis
-                    ],
-                    subject: '',
-                    text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
-                };
-
-                transporter.sendMail(mailOptions, (err, info) => {
-                    if (err) console.error("SMS notification failed:", err);
-                    else console.log("SMS sent successfully:", info.response);
-                });
-            } catch (smsError) {
-                console.error("SMS setup error:", smsError);
-            }
-        }
-
-        res.json({ success: true, order_id: docRef.id, updated });
+        res.json({ success: true, order_id: docRef.id, updated, sms });
 
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

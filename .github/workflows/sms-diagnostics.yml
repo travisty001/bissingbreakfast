@@ -23,6 +23,29 @@ jobs:
           s=d.get('serviceConfig',{})
           print(json.dumps({'state':d.get('state'),'runtime':d.get('buildConfig',{}).get('runtime'),'uri':s.get('uri'),'environment_names':list(s.get('environmentVariables',{})),'secret_names':[v.get('key') for v in s.get('secretEnvironmentVariables',[])]},indent=2))
           PY
-      - name: Read SMS diagnostic logs
+      - name: Verify deployed source matches the baseline
         run: |
-          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="api" AND (textPayload:"SMS" OR textPayload:"notification")' --project bhbreakfastmenu --limit=20 --freshness=14d --format='table(timestamp,severity,textPayload)'
+          python3 - <<'PY'
+          import json
+          s=json.load(open('/tmp/function.json'))['buildConfig']['source']['storageSource']
+          open('/tmp/source-uri','w').write('gs://'+s['bucket']+'/'+s['object'])
+          PY
+          gcloud storage cp "$(cat /tmp/source-uri)" /tmp/deployed-source.zip
+          git fetch origin main --depth=1
+          git show FETCH_HEAD:functions/index.js > /tmp/baseline-index.js
+          python3 - <<'PY'
+          import zipfile
+          z=zipfile.ZipFile('/tmp/deployed-source.zip')
+          candidates=[n for n in z.namelist() if n in ('index.js','functions/index.js')]
+          assert len(candidates)==1, 'Cannot uniquely identify deployed source'
+          assert z.read(candidates[0])==open('/tmp/baseline-index.js','rb').read(), 'Deployed code differs from main; stop for review'
+          print('Deployed source matches baseline.')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and deploy Travis-only SMS diagnostics
+        run: |
+          node --test functions/sms.test.js
+          npm install --prefix functions --no-audit --no-fund
+          npx --yes firebase-tools deploy --only functions:api --project bhbreakfastmenu --non-interactive
