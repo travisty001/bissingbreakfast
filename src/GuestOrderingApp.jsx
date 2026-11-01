@@ -516,7 +516,7 @@ export default function GuestOrderingApp() {
                       <output className="bh-visually-hidden" aria-live="polite">{isContinental ? "Continental breakfast selected" : `Selected serving time ${requestedTime}`}</output>
                       <label className="bh-continental-line">
                         <input type="checkbox" checked={isContinental} onChange={(event) => setTimeIndex(event.target.checked ? TIME_SLOTS.length - 1 : 2)} />
-                        <span>Continental breakfast available before 8:00 AM.</span>
+                        <span>Select this option for a Continental breakfast available prior to 8:00 AM.</span>
                       </label>
                       <div className="bh-clock-guest-count">
                         {!isContinental && (
@@ -694,7 +694,7 @@ export default function GuestOrderingApp() {
                                     {idx === 0 && (
                                         <div className="bh-fruit-notice" role="note">
                                             <strong>Fresh fruit is temporarily unavailable.</strong>
-                                            <span>Thank you for understanding.</span>
+                                            <span>We have temporarily removed fresh fruit as a precaution against potential foodborne illness. Thank you for understanding.</span>
                                         </div>
                                     )}
 
