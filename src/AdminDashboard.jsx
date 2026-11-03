@@ -46,8 +46,6 @@ const getLocalDateString = () => {
 };
 
 export default function AdminDashboard() {
-  const [smsEnabled, setSmsEnabled] = useState(true);
-  const [togglingSms, setTogglingSms] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getLocalDateString);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +53,6 @@ export default function AdminDashboard() {
   const [expandedCards, setExpandedCards] = useState({}); // collapsed by default
 
   useEffect(() => {
-    fetchSmsStatus();
     fetchCheatSheet();
 
     const interval = setInterval(() => {
@@ -64,39 +61,6 @@ export default function AdminDashboard() {
 
     return () => clearInterval(interval);
   }, [selectedDate]);
-
-  const fetchSmsStatus = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/sms-status`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data && typeof data.enabled !== 'undefined') {
-        setSmsEnabled(data.enabled);
-      }
-    } catch (err) {
-      console.warn('Could not load SMS status:', err.message);
-    }
-  };
-
-  const handleToggleTestMode = async () => {
-    const targetSmsState = !smsEnabled;
-    setTogglingSms(true);
-    try {
-      const res = await fetch(`${API_BASE}/sms-toggle`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: targetSmsState })
-      });
-      const data = await res.json();
-      if (data && data.success) {
-        setSmsEnabled(targetSmsState);
-      }
-    } catch (err) {
-      alert('Network error while updating SMS toggle.');
-    } finally {
-      setTogglingSms(false);
-    }
-  };
 
   const fetchCheatSheet = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -111,28 +75,6 @@ export default function AdminDashboard() {
       setOrders([]);
     } finally {
       if (showLoading) setLoading(false);
-    }
-  };
-
-  const handleDeleteOrder = async (orderId, roomName) => {
-    if (!window.confirm(`Are you sure you want to permanently delete the entire order for the ${roomName}?`)) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/orders/${orderId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setExpandedCards(prev => {
-          const next = { ...prev };
-          delete next[orderId];
-          return next;
-        });
-        fetchCheatSheet(false);
-      } else {
-        alert('Failed to delete the order from the database.');
-      }
-    } catch (err) {
-      alert('Network error while trying to delete the order.');
     }
   };
 
@@ -182,7 +124,7 @@ export default function AdminDashboard() {
 
     const roomName = item?.room_name || `Suite ${item?.room_id || 1}`;
     let time = item?.requested_time || '08:30 AM';
-    if (!String(time).toUpperCase().includes('M')) time = `${time} AM`;
+    if (/^\d{1,2}:\d{2}$/.test(String(time).trim())) time = `${time} AM`;
 
     const orderId = item?.order_id || `fallback-${idx}`;
     const groupKey = String(orderId);
@@ -205,6 +147,7 @@ export default function AdminDashboard() {
   const sortedGroups = Object.values(groupedMap).sort((a, b) => {
     const parse = (t) => {
       const raw = String(t || '08:30 AM').trim();
+      if (raw.toLowerCase().startsWith('continental')) return 7 * 60; // Before cooked breakfast service
       let [h, m] = raw.split(' ')[0].split(':').map(Number);
       if (h === 12) h = 0;
       if (raw.toUpperCase().includes('PM')) h += 12;
@@ -232,7 +175,6 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-4">
           <img className="bh-logo bh-admin-logo" src="/Bissing-Logo-Lg-300x300.png" alt="Bissing House" />
           <div className="leading-tight">
-            <div className="text-[#d4af37] text-[10px] tracking-[0.2em] uppercase font-bold mb-1">Bissing House • Kitchen OS</div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Kitchen Dashboard</h1>
           </div>
         </div>
@@ -247,16 +189,6 @@ export default function AdminDashboard() {
             />
           </div>
 
-          <button
-            onClick={handleToggleTestMode}
-            disabled={togglingSms}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#40202a] bg-[#231218] transition-colors"
-          >
-            <span className={`w-2 h-2 rounded-full ${smsEnabled ? 'bg-pink-500' : 'bg-gray-500'}`}></span>
-            <span className="text-xs font-bold uppercase tracking-widest text-pink-100">
-              {smsEnabled ? 'SMS Live' : 'SMS Muted'}
-            </span>
-          </button>
         </div>
       </header>
 
@@ -264,7 +196,7 @@ export default function AdminDashboard() {
         {sortedGroups.length} order{sortedGroups.length === 1 ? '' : 's'} scheduled
       </div>
 
-      <main className="flex-1 p-6 pt-2 overflow-y-auto"><div className="bh-kitchen-intro"><span className="bh-kicker">THE BISSING HOUSE · MORNING SERVICE</span><h2>Breakfast at a glance.</h2><p>Room orders, serving times, and kitchen details in one place.</p></div>
+      <main className="flex-1 p-6 pt-2 overflow-y-auto"><div className="bh-kitchen-intro"><span className="bh-kicker">THE BISSING HOUSE · MORNING SERVICE</span></div>
         {loading ? (
           <div className="text-xl font-bold text-[#888] w-full text-center pt-10">Loading Orders...</div>
         ) : errorMsg ? (
@@ -289,10 +221,9 @@ export default function AdminDashboard() {
                 >
                   <div className="px-5 py-4 flex justify-between items-start z-10">
                     <div>
-                      <div className="text-[10px] text-[#d4af37] font-bold tracking-[0.2em] uppercase mb-1">Now Serving</div>
                       <h2 className="text-2xl font-bold text-white mb-1">{group.roomName}</h2>
                       <div className="text-[10px] text-[#aaa] tracking-widest uppercase font-semibold">
-                        {group.items.length} Plate{group.items.length > 1 ? 's' : ''}
+                        {group.time === 'Continental' ? 'Continental breakfast' : `${group.items.length} Guest${group.items.length > 1 ? 's' : ''}`}
                       </div>
                     </div>
 
@@ -302,15 +233,6 @@ export default function AdminDashboard() {
                       </span>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-[#888]">{formatPlacedTime(group.placedAt)}</span>
-                        <button
-                          onClick={() => handleDeleteOrder(group.orderId, group.roomName)}
-                          className="text-[#666] hover:text-[#ff4444] transition-colors"
-                          title="Delete Order"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -327,11 +249,16 @@ export default function AdminDashboard() {
 
                   {isExpanded && (
                     <div className="p-4 pt-0 z-10 space-y-3">
-                      {group.items.map((item, itemIdx) => {
+                      {group.time === 'Continental' ? (
+                        <div className="bg-[#1c0f14] border border-[#2d1820] rounded-md p-4">
+                          <h3 className="text-lg font-bold text-white mb-2">Continental breakfast</h3>
+                          <p className="text-sm text-[#e5e5e5] leading-snug">Self-service before 8 AM in the dining room. Chilled options are in the dining room fridge.</p>
+                        </div>
+                      ) : group.items.map((item, itemIdx) => {
                         const parsed = parseOrderDetails(item?.item_name);
                         return (
                           <div key={`${group.groupKey}-${itemIdx}`} className="bg-[#1c0f14] border border-[#2d1820] rounded-md p-4">
-                            <div className="text-[9px] font-bold tracking-[0.2em] text-[#d4af37] mb-1.5 uppercase">Plate {itemIdx + 1}</div>
+                            <div className="text-[9px] font-bold tracking-[0.2em] text-[#d4af37] mb-1.5 uppercase">Guest {itemIdx + 1}</div>
 
                             <h3 className="text-lg font-bold text-white mb-3">{parsed.mainCourse}</h3>
 

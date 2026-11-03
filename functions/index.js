@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const nodemailer = require('nodemailer');
-const { sendOrderAlert, testOnly } = require('./sms');
+const { sendOrderAlert } = require('./sms');
 
 admin.initializeApp();
 const dbFirestore = admin.firestore();
@@ -16,39 +16,6 @@ dbFirestore.settings({ ignoreUndefinedProperties: true });
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
-
-// =====================================================================
-// SMS TOGGLE STATE (persisted in Firestore so it survives restarts)
-// =====================================================================
-async function getSmsEnabled() {
-    try {
-        const doc = await dbFirestore.collection('settings').doc('sms').get();
-        if (doc.exists && typeof doc.data().enabled === 'boolean') {
-            return doc.data().enabled;
-        }
-    } catch (err) {
-        console.error("Could not read SMS settings:", err.message);
-    }
-    return false;
-}
-
-app.get('/api/admin/sms-status', async (req, res) => {
-    const enabled = await getSmsEnabled();
-    res.json({ enabled, test_only: testOnly() });
-});
-
-app.put('/api/admin/sms-toggle', async (req, res) => {
-    const next = !!req.body.enabled;
-    try {
-        await dbFirestore.collection('settings').doc('sms').set({
-            enabled: next,
-            updated_at: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        res.json({ success: true, enabled: next });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
-});
 
 // =====================================================================
 // SQLITE DATABASE INIT
@@ -171,7 +138,6 @@ app.post('/api/orders', async (req, res) => {
 
         // Await transport completion before ending the function request.
         const sms = await sendOrderAlert({
-            enabled: await getSmsEnabled(),
             orderId: docRef.id,
             text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
         }, { mailer: nodemailer });
@@ -224,16 +190,6 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
         });
 
         res.json({ success: true, orders: cheatSheet });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// <-- NEW DELETE ROUTE -->
-app.delete('/api/admin/orders/:id', async (req, res) => {
-    try {
-        await dbFirestore.collection('orders').doc(req.params.id).delete();
-        res.json({ success: true, message: "Order successfully deleted." });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
