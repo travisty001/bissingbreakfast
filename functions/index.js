@@ -51,11 +51,20 @@ const queryDb = (sql, params = []) => {
 // =====================================================================
 app.get('/api/menu', async (req, res) => {
     try {
+        const { getOrderingWindow, ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
+        const ordering = getOrderingWindow();
+        res.set('Cache-Control', 'no-store');
+        if (!ordering.open) return res.status(403).json({ success: false, code: 'ORDERING_CLOSED', error: ORDERING_CLOSED_MESSAGE, ordering });
         const rows = await queryDb(`SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name`);
         res.json({ success: true, items: rows });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+app.get('/api/ordering-window', async (req, res) => {
+    const { getOrderingWindow } = await import('./ordering-window.mjs');
+    res.set('Cache-Control', 'no-store').json(getOrderingWindow());
 });
 
 // The room's current service-day order, used to prefill guest corrections.
@@ -79,7 +88,12 @@ app.get('/api/orders/current', async (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
     try {
+        const { getOrderingWindow, ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
+        const ordering = getOrderingWindow();
+        res.set('Cache-Control', 'no-store');
+        if (!ordering.open) return res.status(403).json({ success: false, code: 'ORDERING_CLOSED', error: ORDERING_CLOSED_MESSAGE, ordering });
         const { room_id, service_date, requested_time, guest_count, dietary_notes, order_items } = req.body;
+        if (service_date !== ordering.serviceDate) return res.status(400).json({ success: false, code: 'INVALID_SERVICE_DATE', error: 'Please refresh the menu to order for the following morning.' });
 
         if (!room_id || !service_date || !requested_time) {
             return res.status(400).json({ success: false, error: "Missing required booking details." });

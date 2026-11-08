@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getOrderingWindow, ORDERING_CLOSED_MESSAGE } from '../functions/ordering-window.mjs';
 
 const TIME_SLOTS = ['08:30 AM', '08:45 AM', '09:00 AM', '09:15 AM', '09:30 AM', '09:45 AM', '10:00 AM', '10:15 AM', '10:30 AM', 'Continental'];
 
@@ -21,6 +22,41 @@ export default function GuestOrderingApp() {
     const [plates, setPlates] = useState([createEmptyPlate(1), createEmptyPlate(2)]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submittedOrder, setSubmittedOrder] = useState(null);
+
+    const activeServiceDate = useRef(null);
+    const serverClock = useRef(null);
+    const [ordering, setOrdering] = useState(null);
+    const [orderingUnavailable, setOrderingUnavailable] = useState(false);
+    // Start closed until server time is known; keep open tabs in sync across the cutoff.
+    useEffect(() => {
+        let alive = true;
+
+        const tick = () => {
+            const clock = serverClock.current;
+            if (alive && clock) setOrdering(getOrderingWindow(new Date(clock.time + performance.now() - clock.at)));
+        };
+        const sync = async () => {
+            try {
+                const response = await fetch('https://api-peaufx4prq-uc.a.run.app/api/ordering-window', { cache: 'no-store' });
+                if (!response.ok) throw new Error('Ordering status unavailable');
+                const status = await response.json();
+                const time = Date.parse(status.serverNow);
+                if (!Number.isFinite(time) || typeof status.open !== 'boolean') throw new Error('Invalid ordering status');
+                if (!alive) return;
+                serverClock.current = { time, at: performance.now() };
+                setOrderingUnavailable(false);
+                tick();
+            } catch {
+                if (alive) { serverClock.current = null; setOrdering(null); setOrderingUnavailable(true); }
+            }
+        };
+        sync();
+        const ticker = setInterval(tick, 1000);
+        const refresh = setInterval(sync, 60000);
+        const onVisible = () => { if (!document.hidden) { tick(); sync(); } };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => { alive = false; clearInterval(ticker); clearInterval(refresh); document.removeEventListener('visibilitychange', onVisible); };
+    }, []);
 
     // --- LIVE DAYTIME TRAVELER FORECAST STATE ---
     const [weather, setWeather] = useState({
@@ -76,12 +112,21 @@ export default function GuestOrderingApp() {
     const [existingOrderId, setExistingOrderId] = useState(null);
     const [orderLookupDone, setOrderLookupDone] = useState(false);
 
+    useEffect(() => {
+        if (!ordering?.open || activeServiceDate.current === ordering.serviceDate) return;
+        activeServiceDate.current = ordering.serviceDate;
+        setSubmittedOrder(null);
+        setExistingOrderId(null);
+        setGuestCountChosen(false);
+        setGuestCount(1);
+        setTimeIndex(0);
+        setPlates([createEmptyPlate(1), createEmptyPlate(2)]);
+    }, [ordering?.open, ordering?.serviceDate]);
+
     // Rehydrate the room's order for tomorrow so changes do not create duplicate cards.
     useEffect(() => {
-        if (!isRoomSpecified) return;
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const date = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+        if (!isRoomSpecified || !ordering?.open) return;
+        const date = ordering.serviceDate;
         const roomId = { Bissing: 1, Basgall: 2, TeaRose: 3 }[roomName];
         let alive = true;
         const storageKey = `bissing-order-${roomId}-${date}`;
@@ -117,7 +162,7 @@ export default function GuestOrderingApp() {
             .catch(err => console.warn('Existing-order lookup unavailable:', err))
             .finally(() => { if (alive) setOrderLookupDone(true); });
         return () => { alive = false; };
-    }, [roomName, isRoomSpecified]);
+    }, [roomName, isRoomSpecified, ordering?.open, ordering?.serviceDate]);
 
     // --- FETCH REAL NEXT-DAY FORECAST ---
     useEffect(() => {
@@ -201,6 +246,7 @@ export default function GuestOrderingApp() {
     const isOrderReady = isContinental || activePlates.every(p => p.plateType === 'Egg' || p.plateType === 'Griddle');
 
     const handleSubmitOrder = () => {
+        if (!ordering?.open) return;
         if (!isContinental) {
             for (let i = 0; i < activePlates.length; i++) {
                 if (!activePlates[i].plateType) {
@@ -211,9 +257,7 @@ export default function GuestOrderingApp() {
         }
 
         setIsSubmitting(true);
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const serviceDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        const serviceDate = ordering.serviceDate;
 
         const roomMapping = { 'Bissing': 1, 'Basgall': 2, 'TeaRose': 3, 'Tearose': 3, 'tearose': 3 };
 
@@ -259,8 +303,15 @@ export default function GuestOrderingApp() {
             })
         })
         .then(async res => {
-            if (!res.ok) throw new Error("Server rejected the request.");
-            return res.json();
+            const data = await res.json();
+            if (data.code === 'ORDERING_CLOSED') {
+                serverClock.current = { time: Date.parse(data.ordering.serverNow), at: performance.now() };
+                setOrdering(data.ordering);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return data;
+            }
+            if (!res.ok) throw new Error('Server rejected the request.');
+            return data;
         })
         .then(data => {
             setIsSubmitting(false);
@@ -368,8 +419,8 @@ export default function GuestOrderingApp() {
     if (!isRoomSpecified) return null;
 
     // --- 2. CONFIRMATION, LOCAL GUIDE & WEATHER SCREEN ---
-    if (submittedOrder) {
-        const isContinentalConfirmation = submittedOrder.time === 'Continental';
+    if (submittedOrder || !ordering?.open) {
+        const isContinentalConfirmation = submittedOrder?.time === 'Continental';
         const localLinks = [
             { title: 'Dining in Hays', description: 'Find restaurants, cafes and places to eat.', url: 'https://www.visithays.com/BusinessDirectoryII.aspx?lngBusinessCategoryID=73' },
             { title: 'Downtown Businesses', description: 'Browse the shops, restaurants and services on The Bricks.', url: 'https://www.downtownhays.com/' },
@@ -391,14 +442,14 @@ export default function GuestOrderingApp() {
                     </header>
                     <main className="bh-order-shell bh-confirm-shell" style={darkNavyShellStyle}>
                         <section className="bh-confirm-card" aria-labelledby="bh-confirm-heading">
-                            <div className="bh-confirm-check" aria-hidden="true">✓</div>
-                            <h1 id="bh-confirm-heading">Breakfast Order Confirmed</h1>
+                            <div className="bh-confirm-check" aria-hidden="true">{submittedOrder ? '✓' : '☾'}</div>
+                            <h1 id="bh-confirm-heading">{submittedOrder ? 'Breakfast Order Confirmed' : ordering ? 'Breakfast Ordering Is Closed' : orderingUnavailable ? 'Menu Temporarily Unavailable' : 'Welcome to Bissing House'}</h1>
                             <p className="bh-confirm-lead">
-                                {isContinentalConfirmation
+                                {!submittedOrder ? (ordering ? ORDERING_CLOSED_MESSAGE : orderingUnavailable ? 'We’re unable to check ordering availability right now. Please try again shortly.' : 'Checking breakfast ordering availability…') : isContinentalConfirmation
                                     ? 'Your continental breakfast request is confirmed. Help yourself in the dining room before 8 AM; chilled items are in the dining room fridge.'
                                     : <>We’ll have breakfast ready for you at <strong>{submittedOrder.time.replace(/^0/, '')}</strong> in the dining room.</>}
                             </p>
-                            {!isContinentalConfirmation && submittedOrder.items?.length > 0 && (
+                            {!isContinentalConfirmation && submittedOrder?.items?.length > 0 && (
                                 <div className="bh-confirm-items">
                                     {submittedOrder.items.map((item, idx) => (
                                         <div className="bh-confirm-item" key={idx}>
@@ -410,11 +461,11 @@ export default function GuestOrderingApp() {
                             )}
                         </section>
 
-                        <button type="button" className="bh-confirm-edit" onClick={() => { setSubmittedOrder(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                        {submittedOrder && ordering?.open && <button type="button" className="bh-confirm-edit" onClick={() => { setSubmittedOrder(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                             Edit My Breakfast Order
-                        </button>
+                        </button>}
 
-                        <section className="bh-confirm-card bh-weather-card" aria-labelledby="bh-weather-heading">
+                        {submittedOrder && <section className="bh-confirm-card bh-weather-card" aria-labelledby="bh-weather-heading">
                             <h2 id="bh-weather-heading">Tomorrow’s Weather in Hays</h2>
                             <div className="bh-weather-overview" aria-live="polite">
                                 <span className="bh-weather-icon" aria-hidden="true">{weather.icon}</span>
@@ -438,7 +489,7 @@ export default function GuestOrderingApp() {
                                 </div>
                             )}
                             <p className="bh-weather-footnote">Forecasts can change. Check conditions before heading out.</p>
-                        </section>
+                        </section>}
 
                         <section className="bh-confirm-card bh-local-guide" aria-labelledby="bh-local-heading">
                             <h2 id="bh-local-heading">Enjoy Your Stay in Hays</h2>

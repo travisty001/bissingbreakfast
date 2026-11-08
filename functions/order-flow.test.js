@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
 const Module = require('node:module');
 const http = require('node:http');
 
-test('new and replacement orders alert both channels and isolate transport failures', async () => {
+test('new and replacement orders alert both channels and isolate transport failures', async (t) => {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-11-08T04:59:59Z') });
     const originalLoad = Module._load;
     const messages = [];
     const smsMessages = [];
@@ -81,7 +82,7 @@ test('new and replacement orders alert both channels and isolate transport failu
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
-                    room_id: 1, service_date: '2099-01-01',
+                    room_id: 1, service_date: '2026-11-08',
                     requested_time: time, guest_count: 1, order_items: []
                 })
             });
@@ -112,5 +113,27 @@ test('new and replacement orders alert both channels and isolate transport failu
         assert.equal(messages.length, 4);
         assert.equal(docs.length, 1);
         assert.equal(docs[0].value.requested_time, '9:45');
+        const snapshot = JSON.stringify(docs);
+        for (const instant of ['2026-11-08T05:00:00Z', '2026-11-08T06:00:00Z', '2026-11-08T20:59:59Z']) {
+            t.mock.timers.setTime(new Date(instant).getTime());
+            const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({room_id: 1, service_date: '2026-11-08', requested_time: '10:00'}) });
+            assert.equal(response.status, 403);
+            assert.equal((await response.json()).code, 'ORDERING_CLOSED');
+            const menu = await fetch(endpoint.replace('/orders', '/menu'));
+            assert.equal(menu.status, 403);
+        }
+        assert.equal(JSON.stringify(docs), snapshot);
+        assert.equal(messages.length, 4);
+        assert.equal(smsMessages.length, 4);
+        t.mock.timers.setTime(new Date('2026-11-08T21:00:00Z').getTime());
+        const status = await fetch(endpoint.replace('/orders', '/ordering-window'));
+        assert.equal(status.headers.get('cache-control'), 'no-store');
+        assert.equal((await status.json()).open, true);
+        assert.equal((await fetch(endpoint.replace('/orders', '/menu'))).status, 200);
+        const stale = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({room_id: 1, service_date: '2026-11-08', requested_time: '10:00'}) });
+        assert.equal(stale.status, 400);
+        assert.equal(messages.length, 4);
     } finally { await new Promise(resolve => server.close(resolve)); }
 });
