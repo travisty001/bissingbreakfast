@@ -1,4 +1,7 @@
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
+const telegramTokenSecret = defineSecret('TELEGRAM_BOT_TOKEN');
+const telegramChatIdsSecret = defineSecret('TELEGRAM_CHAT_IDS');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
@@ -6,8 +9,10 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { sendTelegramAlert } = require('./telegram');
 const nodemailer = require('nodemailer');
 const { sendOrderAlert } = require('./sms');
+const smsPasswordSecret = defineSecret('SMS_GMAIL_APP_PASSWORD');
 
 admin.initializeApp();
 const dbFirestore = admin.firestore();
@@ -136,13 +141,18 @@ app.post('/api/orders', async (req, res) => {
             docRef = await dbFirestore.collection('orders').add(orderDoc);
         }
 
-        // Await transport completion before ending the function request.
-        const sms = await sendOrderAlert({
+        // Await both independent transports before ending the function request.
+        const alert = {
             orderId: docRef.id,
             text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
-        }, { mailer: nodemailer });
-
-        res.json({ success: true, order_id: docRef.id, updated, sms });
+        };
+        const results = await Promise.allSettled([
+            Promise.resolve().then(() => sendOrderAlert(alert, { mailer: nodemailer })),
+            Promise.resolve().then(() => sendTelegramAlert(alert))
+        ]);
+        const [sms, telegram] = results.map(result =>
+            result.status === 'fulfilled' ? result.value : { status: 'failed' });
+        res.json({ success: true, order_id: docRef.id, updated, sms, telegram });
 
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -195,4 +205,4 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
     }
 });
 
-exports.api = functions.https.onRequest(app);
+exports.api = functions.https.onRequest({ secrets: [telegramTokenSecret, telegramChatIdsSecret, smsPasswordSecret] }, app);
