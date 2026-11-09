@@ -888,7 +888,6 @@ export default function GuestOrderingApp() {
         )}
         <footer className="vm-center">
           {ornament}
-          <p>Bissing House · Hays, Kansas</p>
         </footer>
       </div>
     </div>
