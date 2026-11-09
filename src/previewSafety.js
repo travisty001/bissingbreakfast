@@ -1,3 +1,4 @@
+import { getOrderingWindow } from '../functions/ordering-window.mjs';
 // Preview mode is intentionally isolated from the production ordering API.
 // Vite dev server only: never contact or modify real guest orders or SMS settings.
 if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_LIVE_API !== 'true') {
@@ -11,7 +12,8 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_LIVE_API !== 'true') {
     }
     const path = new URL(url).pathname;
     let payload = { success: true };
-    if (path.endsWith('/cheat-sheet')) payload = { orders: [] };
+    if (path.endsWith('/ordering-window')) payload = getOrderingWindow(new Date(new Date().toISOString().slice(0,10) + 'T22:00:00Z'));
+    else if (path.endsWith('/cheat-sheet')) payload = { orders: [] };
     else if (path.endsWith('/current')) payload = { order: null };
     else if (path.endsWith('/orders') && (init.method || 'GET').toUpperCase() === 'POST') {
       payload = { success: true, order_id: 'PREVIEW-' + Date.now() };
