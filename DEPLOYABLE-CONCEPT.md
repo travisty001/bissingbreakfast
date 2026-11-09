@@ -1,4 +1,4 @@
-# Victorian guest menu — prepared, not deployed
+# Victorian guest menu — release approved
 
 Branch: `design/victorian-menu-concept`. The archived static study remains in `design/victorian-menu-concept/`; the React guest app now implements its cream/off-white background, exact website palette, static logo, Victorian scrollwork, double frames, numbered guests, and review/edit journey. Room photos are not displayed.
 
@@ -20,4 +20,4 @@ Current production serving times, meal options, room QR routing, room-level Cont
 - `node tests/victorian-interactions.cjs` after building: mocked network; required choices, two-guest selections, review without submission, edit retention, correct room payload, confirmation, Continental.
 - `tests/ordering-browser.cjs` is updated for the review step. Chromium is blocked from starting by this workspace's socket restrictions, so real-browser visual and cutoff checks remain pending. Run with Playwright available and the production preview on port 5177; its API routes are mocked.
 
-Before a future deployment, complete real-browser mobile/desktop review. Nothing in this work authorizes deployment or a merge to main.
+On November 9, 2026, Travis confirmed the local review was good and explicitly authorized deployment and commits on this branch. Release scope is Firebase Hosting only; backend functions and main remain unchanged. Build, lint, backend tests, and mocked UI interactions are rechecked on Omarchy before deployment. The earlier Chromium limitation applies to the cloud workspace; user review supplied the release approval.
