@@ -10,9 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { sendTelegramAlert } = require('./telegram');
-const nodemailer = require('nodemailer');
-const { sendOrderAlert } = require('./sms');
-const smsPasswordSecret = defineSecret('SMS_GMAIL_APP_PASSWORD');
+const { sendOrderAlert, getAlertChannelsStatus } = require('./sms');
 
 admin.initializeApp();
 const dbFirestore = admin.firestore();
@@ -21,6 +19,12 @@ dbFirestore.settings({ ignoreUndefinedProperties: true });
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
+
+// Read-only legacy SMS status. No carrier email-to-text route can be enabled.
+app.get('/api/admin/sms-status', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ enabled: false, ...getAlertChannelsStatus() });
+});
 
 // =====================================================================
 // SQLITE DATABASE INIT
@@ -161,7 +165,7 @@ app.post('/api/orders', async (req, res) => {
             text: `${updated ? 'Updated' : 'New'} Breakfast Order: ${roomName} for ${requested_time}.`
         };
         const results = await Promise.allSettled([
-            Promise.resolve().then(() => sendOrderAlert(alert, { mailer: nodemailer })),
+            Promise.resolve().then(() => sendOrderAlert(alert)),
             Promise.resolve().then(() => sendTelegramAlert(alert))
         ]);
         const [sms, telegram] = results.map(result =>
@@ -219,4 +223,4 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
     }
 });
 
-exports.api = functions.https.onRequest({ secrets: [telegramTokenSecret, telegramChatIdsSecret, smsPasswordSecret] }, app);
+exports.api = functions.https.onRequest({ secrets: [telegramTokenSecret, telegramChatIdsSecret] }, app);

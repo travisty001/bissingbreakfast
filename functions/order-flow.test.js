@@ -6,12 +6,10 @@ const assert = require('node:assert/strict');
 const Module = require('node:module');
 const http = require('node:http');
 
-test('new and replacement orders alert both channels and isolate transport failures', async (t) => {
+test('new and replacement orders preserve Telegram and disable legacy SMS even on errors', async (t) => {
     t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-11-08T04:59:59Z') });
     const originalLoad = Module._load;
     const messages = [];
-    const smsMessages = [];
-    let smsThrows = false;
     let telegramThrows = false;
     const docs = [];
     const fakeDb = {
@@ -43,14 +41,9 @@ test('new and replacement orders alert both channels and isolate transport failu
         }
     }) };
     const fakeFunctions = { https: { onRequest: (options, app) => {
-        assert.deepEqual(options.secrets, ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_IDS', 'SMS_GMAIL_APP_PASSWORD']);
+        assert.deepEqual(options.secrets, ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_IDS']);
         return app;
     } } };
-    const fakeSms = { sendOrderAlert: async message => {
-        smsMessages.push(message);
-        if (smsThrows) throw new Error('SMTP unavailable');
-        return { status: 'smtp_accepted' };
-    } };
     const fakeTelegram = {
         sendTelegramAlert: async message => {
             messages.push(message);
@@ -65,8 +58,6 @@ test('new and replacement orders alert both channels and isolate transport failu
             if (request === 'firebase-functions/params') return { defineSecret: name => name };
             if (request === 'sqlite3') return fakeSqlite;
             if (request === './telegram') return fakeTelegram;
-            if (request === './sms') return fakeSms;
-            if (request === 'nodemailer') return {};
         }
         return originalLoad.apply(this, arguments);
     };
@@ -92,24 +83,22 @@ test('new and replacement orders alert both channels and isolate transport failu
         const first = await submit('8:30');
         assert.equal(first.updated, false);
         assert.equal(first.telegram.status, 'sent');
-        assert.equal(first.sms.status, 'smtp_accepted');
+        assert.equal(first.sms.status, 'disabled');
         assert.equal(messages[0].text, 'New Breakfast Order: Bissing Suite for 8:30.');
         const second = await submit('9:15');
         assert.equal(second.updated, true);
         assert.equal(second.order_id, first.order_id);
         assert.equal(messages[1].text, 'Updated Breakfast Order: Bissing Suite for 9:15.');
-        assert.deepEqual(smsMessages, messages);
-        smsThrows = true;
+        assert.equal(second.sms.status, 'disabled');
         const third = await submit('9:30');
         assert.equal(third.success, true);
-        assert.equal(third.sms.status, 'failed');
+        assert.equal(third.sms.status, 'disabled');
         assert.equal(third.telegram.status, 'sent');
-        smsThrows = false; telegramThrows = true;
+        telegramThrows = true;
         const fourth = await submit('9:45');
         assert.equal(fourth.success, true);
-        assert.equal(fourth.sms.status, 'smtp_accepted');
+        assert.equal(fourth.sms.status, 'disabled');
         assert.equal(fourth.telegram.status, 'failed');
-        assert.equal(smsMessages.length, 4);
         assert.equal(messages.length, 4);
         assert.equal(docs.length, 1);
         assert.equal(docs[0].value.requested_time, '9:45');
@@ -125,7 +114,6 @@ test('new and replacement orders alert both channels and isolate transport failu
         }
         assert.equal(JSON.stringify(docs), snapshot);
         assert.equal(messages.length, 4);
-        assert.equal(smsMessages.length, 4);
         t.mock.timers.setTime(new Date('2026-11-08T21:00:00Z').getTime());
         const status = await fetch(endpoint.replace('/orders', '/ordering-window'));
         assert.equal(status.headers.get('cache-control'), 'no-store');
