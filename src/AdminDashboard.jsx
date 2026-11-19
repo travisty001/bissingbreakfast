@@ -106,6 +106,8 @@ export default function AdminDashboard() {
       drinks = drinksPart.replace('Drinks:', '').trim();
     }
 
+    // Keep fruit toppings on orders saved before the griddle label was corrected.
+    mainCourse = mainCourse.replace(/^Plain (?=(?:Pancakes|Crepes|French Toast) with (?:Strawberries|Banana)\b)/, '');
     return { mainCourse, sides, drinks, special };
   };
 

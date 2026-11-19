@@ -23,12 +23,20 @@ const createEmptyPlate = (num) => ({
   plateType: "", // 'Egg' | 'Griddle'
   eggStyle: "Scrambled",
   griddleType: "Crepes",
-  griddleFlavor: "Plain",
+  griddleFlavor: "No Hazelnut Spread",
   griddleToppings: [],
   sides: [],
   beverages: [],
   notes: "",
 });
+
+function formatGriddleMain({ griddleType, griddleFlavor, griddleToppings }) {
+  const spread = griddleFlavor === "Hazelnut Spread" ? "Hazelnut Spread " : "";
+  if (griddleToppings.length) {
+    return spread + griddleType + " with " + griddleToppings.join(" & ");
+  }
+  return (spread || "Plain ") + griddleType;
+}
 
 export default function GuestOrderingApp() {
   const [reviewing, setReviewing] = useState(false);
@@ -129,7 +137,7 @@ export default function GuestOrderingApp() {
     "Hard Boiled",
   ];
   const griddleTypes = ["Crepes", "French Toast", "Pancakes"];
-  const griddleFlavors = ["Plain", "Hazelnut Spread"];
+  const griddleFlavors = ["No Hazelnut Spread", "Hazelnut Spread"];
   const griddleToppings = ["Strawberries", "Banana"];
   const sideOptions = [
     "Bacon",
@@ -230,7 +238,7 @@ export default function GuestOrderingApp() {
             griddleType,
             griddleFlavor: main.startsWith("Hazelnut Spread")
               ? "Hazelnut Spread"
-              : "Plain",
+              : "No Hazelnut Spread",
             griddleToppings: ["Strawberries", "Banana"].filter(
               (t) =>
                 main.includes(` with `) &&
@@ -388,7 +396,7 @@ export default function GuestOrderingApp() {
       const itemName =
         p.plateType === "Egg"
           ? `Egg Breakfast (${p.eggStyle})`
-          : `${p.griddleFlavor} ${p.griddleType}${p.griddleToppings.length ? ` with ${p.griddleToppings.join(" & ")}` : ""}`;
+          : formatGriddleMain(p);
       const sidesText = p.sides.length > 0 ? p.sides.join(", ") : "No sides";
       const bevText =
         p.beverages.length > 0 ? p.beverages.join(", ") : "No beverages";
@@ -521,12 +529,9 @@ export default function GuestOrderingApp() {
         <strong>
           {p.plateType === "Egg"
             ? "Eggs · " + p.eggStyle
-            : p.griddleType + " · " + p.griddleFlavor}
+            : formatGriddleMain(p)}
         </strong>
       </p>
-      {p.plateType === "Griddle" && p.griddleToppings.length > 0 && (
-        <p>{p.griddleToppings.join(", ")}</p>
-      )}
       <p>Sides: {p.sides.join(", ") || "None"}</p>
       <p>Drinks: {p.beverages.join(", ") || "None"}</p>
       {p.notes && <p>Special request: {p.notes}</p>}
@@ -795,7 +800,7 @@ export default function GuestOrderingApp() {
                               )}
                             </fieldset>
                             <fieldset>
-                              <legend>Flavor</legend>
+                              <legend>Spread</legend>
                               {choices(
                                 griddleFlavors,
                                 plate.griddleFlavor,
