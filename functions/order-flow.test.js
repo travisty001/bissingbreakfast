@@ -68,28 +68,35 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const endpoint = 'http://127.0.0.1:' + server.address().port + '/api/orders';
     try {
-        async function submit(time) {
+        async function submit(time, selection) {
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
                     room_id: 1, service_date: '2026-11-08',
-                    requested_time: time, guest_count: 1, order_items: []
+                    requested_time: time, guest_count: 1,
+                    order_items: selection ? [{ menu_item_id: 1, quantity: 1, customization_note: selection }] : []
                 })
             });
             assert.equal(response.status, 200);
             return response.json();
         }
-        const first = await submit('8:30');
+        const first = await submit('8:30', 'Egg Breakfast (Poached)');
         assert.equal(first.updated, false);
         assert.equal(first.telegram.status, 'sent');
         assert.equal(first.sms.status, 'disabled');
         assert.equal(messages[0].text, 'New Breakfast Order: Bissing Suite for 8:30.');
-        const second = await submit('9:15');
+        assert.equal(messages[0].updated, false);
+        assert.equal(messages[0].order.items[0].item_name, 'Egg Breakfast (Poached)');
+        const second = await submit('9:15', 'French Toast with Banana');
         assert.equal(second.updated, true);
         assert.equal(second.order_id, first.order_id);
         assert.equal(messages[1].text, 'Updated Breakfast Order: Bissing Suite for 9:15.');
         assert.equal(second.sms.status, 'disabled');
+        assert.equal(messages[1].updated, true);
+        assert.deepEqual(messages[1].order.items, docs[0].value.items);
+        assert.equal(messages[1].order.items[0].item_name, 'French Toast with Banana');
+        assert.equal(messages[0].order.items[0].item_name, 'Egg Breakfast (Poached)');
         const third = await submit('9:30');
         assert.equal(third.success, true);
         assert.equal(third.sms.status, 'disabled');

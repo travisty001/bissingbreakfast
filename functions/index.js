@@ -166,7 +166,7 @@ app.post('/api/orders', async (req, res) => {
         };
         const results = await Promise.allSettled([
             Promise.resolve().then(() => sendOrderAlert(alert)),
-            Promise.resolve().then(() => sendTelegramAlert(alert))
+            Promise.resolve().then(() => sendTelegramAlert({ ...alert, order: orderDoc, updated }))
         ]);
         const [sms, telegram] = results.map(result =>
             result.status === 'fulfilled' ? result.value : { status: 'failed' });
