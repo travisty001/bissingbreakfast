@@ -37,6 +37,7 @@ async function sendTelegramAlert({ text, orderId, order, updated }, { env = proc
                 body.set('chat_id', chatId);
                 body.set('caption', text.slice(0, 1024));
                 body.set('document', copy.file, copy.filename);
+                body.set('disable_content_type_detection', 'true');
                 const result = await postToTelegram(fetchImpl, token, 'sendDocument', body);
                 if (result.ok) {
                     copiesSent++;

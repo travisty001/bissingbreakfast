@@ -149,14 +149,18 @@ app.post('/api/orders', async (req, res) => {
         matching.sort((a,b) => (b.data().created_at?.toMillis?.() || 0) -
             (a.data().created_at?.toMillis?.() || 0));
         let docRef;
+        let placedAt;
         const updated = matching.length > 0;
         if (updated) {
             docRef = matching[0].ref;
+            placedAt = matching[0].data().created_at;
             delete orderDoc.created_at;
             await docRef.update({ ...orderDoc,
                 updated_at: admin.firestore.FieldValue.serverTimestamp() });
         } else {
-            docRef = await dbFirestore.collection('orders').add(orderDoc);
+            docRef = dbFirestore.collection('orders').doc();
+            const write = await docRef.create(orderDoc);
+            placedAt = write.writeTime;
         }
 
         // Await both independent transports before ending the function request.
@@ -166,7 +170,7 @@ app.post('/api/orders', async (req, res) => {
         };
         const results = await Promise.allSettled([
             Promise.resolve().then(() => sendOrderAlert(alert)),
-            Promise.resolve().then(() => sendTelegramAlert({ ...alert, order: orderDoc, updated }))
+            Promise.resolve().then(() => sendTelegramAlert({ ...alert, order: { ...orderDoc, created_at: placedAt }, updated }))
         ]);
         const [sms, telegram] = results.map(result =>
             result.status === 'fulfilled' ? result.value : { status: 'failed' });

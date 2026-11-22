@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+html { font-family: system-ui, sans-serif; background: #f5ede2; color: #fff8ef; }
+body { margin: 0; font-size: 1.375rem; line-height: 1.45; overflow-wrap: anywhere; }
+h1, h2, h3, p, dl, dd { margin: 0; }
+main { max-width: 48rem; margin: 0 auto; padding: clamp(.55rem, 2.5vw, 1.5rem); }
+header { display: flex; align-items: center; gap: .75rem; color: #382531; margin: .25rem .3rem 1rem; }
+header img { width: 3.25rem; height: 3.25rem; border-radius: 50%; }
+header h1 { font: 700 clamp(1.65rem, 4vw, 2.1rem)/1.15 Georgia, serif; }
+.date { font-size: 1.125rem; color: #58464c; }
+.ticket { border: 1px solid #503745; border-radius: 1.05rem; background: #201820; overflow: hidden; }
+.summary { background-color: #30212c; background-size: cover; background-position: center; padding: clamp(1rem, 4vw, 2rem); border-bottom: 2px solid #bb985e; }
+.status, .guest-label, dt, .note strong { font-size: 1.125rem; font-weight: 700; line-height: 1.35; }
+.status, .guest-label { color: #f2cf8e; }
+.room-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1.5rem; margin: .45rem 0; }
+h2 { font: 700 clamp(2.15rem, 6vw, 3.2rem)/1.08 Georgia, serif; }
+.time { display: inline-block; max-width: 100%; padding: .23em .65em; border: 1px solid #e8cda2; border-radius: 2rem; background: #fff1d8; color: #39232e; font-size: clamp(1.7rem, 4.5vw, 2.15rem); line-height: 1.2; font-weight: 750; font-variant-numeric: tabular-nums; }
+.meta { display: flex; flex-wrap: wrap; gap: .15rem 1rem; font-size: 1.2rem; }
+.plates { display: grid; gap: .75rem; padding: clamp(.6rem, 2.5vw, 1.1rem); }
+.plate { background: #2e202a; border: 1px solid #654957; border-radius: .65rem; padding: clamp(.9rem, 3vw, 1.4rem); }
+h3 { margin: .25rem 0 .65rem; font-size: clamp(1.65rem, 4.5vw, 2.15rem); line-height: 1.18; }
+dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: .6rem 1rem; }
+dt { color: #f0c9da; margin-bottom: .12rem; }
+dd, .note p, .instructions { font-size: 1.375rem; white-space: pre-wrap; }
+.note { margin-top: .8rem; padding: .55rem .8rem; border-left: .25rem solid #edc983; background: #41312e; }
+.note strong { color: #ffe1ad; }
+.plates > .note { margin: 0; }
+@media print {
+  html, .ticket, .summary, .time, .plate, .note { background: white !important; color: #111 !important; }
+  .status, .guest-label, dt, .note strong, .date { color: #352832; }
+  main { max-width: none; padding: 0; }
+  .plate { break-inside: avoid; }
+}
