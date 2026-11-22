@@ -21,11 +21,14 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
                     data: () => d.value,
                     ref: { id: d.id, update: async v => { d.value = { ...d.value, ...v }; } }
                 })) }) }; },
-                add: async value => {
-                    const d = { id: 'isolated-order-1', value };
-                    docs.push(d);
-                    return { id: d.id };
-                }
+                doc: () => ({
+                    id: 'isolated-order-1',
+                    create: async value => {
+                        const writeTime = '2026-11-08T04:59:59Z';
+                        docs.push({ id: 'isolated-order-1', value: { ...value, created_at: writeTime } });
+                        return { writeTime };
+                    }
+                })
             };
         }
     };
@@ -94,6 +97,8 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
         assert.equal(messages[1].text, 'Updated Breakfast Order: Bissing Suite for 9:15.');
         assert.equal(second.sms.status, 'disabled');
         assert.equal(messages[1].updated, true);
+        assert.equal(messages[0].order.created_at, '2026-11-08T04:59:59Z');
+        assert.equal(messages[1].order.created_at, messages[0].order.created_at);
         assert.deepEqual(messages[1].order.items, docs[0].value.items);
         assert.equal(messages[1].order.items[0].item_name, 'French Toast with Banana');
         assert.equal(messages[0].order.items[0].item_name, 'Egg Breakfast (Poached)');

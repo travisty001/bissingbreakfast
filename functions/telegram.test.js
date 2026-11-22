@@ -50,7 +50,7 @@ const orderWithCopy = {
 };
 const twoChats = { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_IDS: '100,200' };
 
-test('each chat receives one PDF with its order alert as the caption', async () => {
+test('each chat receives one HTML kitchen card with its order alert as the caption', async () => {
     const requests = [];
     const result = await sendTelegramAlert(orderWithCopy, {
         env: twoChats, logger, fetchImpl: async (url, { body }) => {
@@ -64,9 +64,14 @@ test('each chat receives one PDF with its order alert as the caption', async () 
         assert.ok(url.endsWith('/sendDocument'));
         assert.equal(body.get('caption'), orderWithCopy.text);
         const file = body.get('document');
-        assert.equal(file.type, 'application/pdf');
-        assert.equal(file.name, 'tea-rose-suite-2026-11-22-updated.pdf');
-        assert.equal(await file.slice(0, 5).text(), '%PDF-');
+        assert.equal(file.type, 'text/html');
+        assert.equal(file.name, 'tea-rose-suite-2026-11-22-updated.html');
+        const html = await file.text();
+        assert.ok(html.startsWith('<!doctype html>'));
+        assert.match(html, /Guest 1[\s\S]*Crêpe with Banana[\s\S]*Bacon[\s\S]*Coffee[\s\S]*No butter/);
+        assert.match(html, /Guest 2[\s\S]*Egg Breakfast[\s\S]*Orange Juice/);
+        assert.match(html, /Dietary notes[\s\S]*No peanuts/);
+        assert.equal(body.get('disable_content_type_detection'), 'true');
     }
 });
 
@@ -97,4 +102,31 @@ test('after an uncertain upload the next chat still receives its own copy', asyn
     });
     assert.deepEqual(result, { status: 'partial', sent: 1, expected: 2, copiesSent: 1 });
     assert.equal(attempts, 2);
+});
+
+test('kitchen card prints free-form guest input as literal text', async () => {
+    const { createOrderCopy } = require('./order-copy');
+    const order = { ...orderWithCopy.order, room_name: '<img src=x>', dietary_notes: '<b>no nuts</b>',
+        created_at: { toDate: () => new Date('2026-11-22T00:30:00Z') }, items: [
+            { item_name: 'Crêpe - Sides: Toast | Drinks: Café [Special Request: <script>alert(1)</script>\nUse [A] | B & C]', quantity: 2 }
+        ] };
+    const { file } = createOrderCopy(order, true);
+    const html = await file.text();
+    assert.match(html, /&lt;img src=x&gt;/);
+    assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;\nUse \[A\] \| B &amp; C/);
+    assert.match(html, /&lt;b&gt;no nuts&lt;\/b&gt;/);
+    assert.match(html, /Guest 1 · Qty 2/);
+    assert.match(html, /Placed 6:30 PM/);
+    assert.doesNotMatch(html, /<script/i);
+});
+
+test('continental card shows the room request and kitchen instructions', async () => {
+    const { createOrderCopy } = require('./order-copy');
+    const html = await createOrderCopy({ ...orderWithCopy.order, requested_time: 'Continental', items: [
+        { item_name: 'Extra tea', quantity: 2 }
+    ] }, false).file.text();
+    assert.match(html, /Before 8 AM/);
+    assert.match(html, /dining room fridge/);
+    assert.match(html, /2 × Extra tea/);
+    assert.doesNotMatch(html, /Guest 1/);
 });
