@@ -378,7 +378,7 @@ export default function GuestOrderingApp() {
                 <div style={columnStyle}>
                     <header className="bh-hero" style={frostedHeaderStyle}>
                         <img
-                            className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
+                            className="bh-logo bh-coin" src="/Bissing-Logo-Lg-300x300.png"
                             alt="Bissing House"
                             style={{ width: '88px', height: '88px', borderRadius: '50%', marginBottom: '14px', boxShadow: '0 4px 14px rgba(0,0,0,0.4)' }}
                         />
@@ -404,7 +404,7 @@ export default function GuestOrderingApp() {
                 <div style={columnStyle}>
                     <header className="bh-hero" style={frostedHeaderStyle}>
                         <img
-                            className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
+                            className="bh-logo bh-coin" src="/Bissing-Logo-Lg-300x300.png"
                             alt="Bissing House"
                             style={{ width: '84px', height: '84px', borderRadius: '50%', marginBottom: '12px' }}
                         />
@@ -492,13 +492,13 @@ export default function GuestOrderingApp() {
                 {/* TOP FROSTED HEADER WITH CIRCULAR LOGO */}
                 <header className="bh-hero" style={frostedHeaderStyle}>
                     <img
-                        className="bh-logo" src="/Bissing-Logo-Lg-300x300.png"
+                        className="bh-logo bh-coin" src="/Bissing-Logo-Lg-300x300.png"
                         alt="The Bissing House"
                         style={{
                             width: '88px',
                             height: '88px',
                             borderRadius: '50%',
-                            objectFit: 'cover',
+                            objectFit: 'contain',
                             marginBottom: '12px',
                             boxShadow: '0 6px 18px rgba(0, 0, 0, 0.45)',
                             border: '2px solid rgba(255, 255, 255, 0.85)'

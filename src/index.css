@@ -101,3 +101,8 @@ body { background:#151016; }
 @keyframes bh-breathe { 0%,100% {filter:drop-shadow(0 0 0 rgba(203,168,108,0))} 50% {filter:drop-shadow(0 0 12px rgba(203,168,108,.45))} }
 @media(prefers-reduced-motion:reduce) { .bh-logo {animation:none} *,*:before,*:after {scroll-behavior:auto!important} }
 @media(max-width:600px) { .bh-hero h1 {font-size:32px!important} .bh-admin > header {padding:16px!important} }
+
+/* Unclipped two-sided welcome medallion: coin turns slow to a stop. */
+.bh-coin { object-fit:contain!important; padding:3px; background:rgba(255,255,255,.94); box-sizing:border-box; border-radius:50%; animation:bh-coin-intro 3.8s cubic-bezier(.12,.72,.2,1) both, bh-breathe 6s ease-in-out 3.8s infinite!important; backface-visibility:visible; transform-style:preserve-3d; overflow:visible!important; }
+@keyframes bh-coin-intro { 0% {opacity:.4;transform:perspective(700px) rotateY(0deg) scale(.85);filter:invert(1)} 23% {opacity:1;transform:perspective(700px) rotateY(390deg) scale(1)} 48% {transform:perspective(700px) rotateY(685deg);filter:invert(1)} 73% {transform:perspective(700px) rotateY(850deg);filter:invert(0)} 100% {transform:perspective(700px) rotateY(1080deg) scale(1);filter:invert(0)} }
+@media(prefers-reduced-motion:reduce){.bh-coin{animation:none!important}}

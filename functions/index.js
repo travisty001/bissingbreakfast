@@ -239,4 +239,4 @@ app.delete('/api/admin/orders/:id', async (req, res) => {
     }
 });
 
-exports.api = functions.https.onRequest(app);
+exports.api = functions.https.onRequest({ secrets: ["SMS_GMAIL_APP_PASSWORD"] }, app);
