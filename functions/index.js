@@ -1,5 +1,7 @@
 const functions = require('firebase-functions');
 const { defineSecret } = require('firebase-functions/params');
+const { timingSafeEqual, createHash } = require('node:crypto');
+const menuOverrideSecret = defineSecret('MENU_OVERRIDE_PASSWORD');
 const telegramTokenSecret = defineSecret('TELEGRAM_BOT_TOKEN');
 const telegramChatIdsSecret = defineSecret('TELEGRAM_CHAT_IDS');
 const admin = require('firebase-admin');
@@ -19,6 +21,41 @@ dbFirestore.settings({ ignoreUndefinedProperties: true });
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
+
+const overrideDoc = dbFirestore.collection('settings').doc('orderingWindow');
+async function effectiveOrderingWindow() {
+    const { getOrderingWindow } = await import('./ordering-window.mjs');
+    const snapshot = await overrideDoc.get();
+    return getOrderingWindow(new Date(), snapshot.data()?.overrideUntil);
+}
+app.post('/api/admin/ordering-window', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+        const expected = menuOverrideSecret.value();
+        const supplied = req.get('X-Menu-Password') || '';
+        const digest = s => createHash('sha256').update(s).digest();
+        if (!expected || !timingSafeEqual(digest(supplied), digest(expected))) {
+            return res.status(403).json({ error: 'Invalid menu override password.' });
+        }
+        const { mode, until } = req.body;
+        const now = Date.now();
+        let expires = null;
+        if (mode === 'hour') expires = new Date(now + 3600000).toISOString();
+        else if (mode === 'custom') {
+            const value = Date.parse(until);
+            if (!Number.isFinite(value) || value <= now || value > now + 31 * 86400000) {
+                return res.status(400).json({ error: 'Choose a future time within 31 days.' });
+            }
+            expires = new Date(value).toISOString();
+        } else if (mode !== 'normal') return res.status(400).json({ error: 'Invalid mode.' });
+        await overrideDoc.set({ overrideUntil: expires, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        const { getOrderingWindow } = await import('./ordering-window.mjs');
+        res.json(getOrderingWindow(new Date(), expires));
+    } catch (err) {
+        console.error('Menu override failed', err);
+        res.status(503).json({ error: 'Unable to update menu hours.' });
+    }
+});
 
 // Read-only legacy SMS status. No carrier email-to-text route can be enabled.
 app.get('/api/admin/sms-status', (_req, res) => {
@@ -55,8 +92,8 @@ const queryDb = (sql, params = []) => {
 // =====================================================================
 app.get('/api/menu', async (req, res) => {
     try {
-        const { getOrderingWindow, ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
-        const ordering = getOrderingWindow();
+        const { ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
+        const ordering = await effectiveOrderingWindow();
         res.set('Cache-Control', 'no-store');
         if (!ordering.open) return res.status(403).json({ success: false, code: 'ORDERING_CLOSED', error: ORDERING_CLOSED_MESSAGE, ordering });
         const rows = await queryDb(`SELECT * FROM menu_items WHERE is_available = 1 ORDER BY category, name`);
@@ -67,8 +104,9 @@ app.get('/api/menu', async (req, res) => {
 });
 
 app.get('/api/ordering-window', async (req, res) => {
-    const { getOrderingWindow } = await import('./ordering-window.mjs');
-    res.set('Cache-Control', 'no-store').json(getOrderingWindow());
+    res.set('Cache-Control', 'no-store');
+    try { res.json(await effectiveOrderingWindow()); }
+    catch (err) { res.status(503).json({ error: 'Ordering status unavailable.' }); }
 });
 
 // The room's current service-day order, used to prefill guest corrections.
@@ -92,8 +130,8 @@ app.get('/api/orders/current', async (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
     try {
-        const { getOrderingWindow, ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
-        const ordering = getOrderingWindow();
+        const { ORDERING_CLOSED_MESSAGE } = await import('./ordering-window.mjs');
+        const ordering = await effectiveOrderingWindow();
         res.set('Cache-Control', 'no-store');
         if (!ordering.open) return res.status(403).json({ success: false, code: 'ORDERING_CLOSED', error: ORDERING_CLOSED_MESSAGE, ordering });
         const { room_id, service_date, requested_time, guest_count, dietary_notes, order_items } = req.body;
@@ -227,4 +265,4 @@ app.get('/api/admin/cheat-sheet', async (req, res) => {
     }
 });
 
-exports.api = functions.https.onRequest({ secrets: [telegramTokenSecret, telegramChatIdsSecret] }, app);
+exports.api = functions.https.onRequest({ secrets: [telegramTokenSecret, telegramChatIdsSecret, menuOverrideSecret] }, app);

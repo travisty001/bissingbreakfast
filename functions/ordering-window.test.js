@@ -23,3 +23,13 @@ test('Hays ordering window boundaries, midnight, daylight saving and year rollov
         assert.equal(result.serviceDate, serviceDate, instant);
     }
 });
+
+test('override opens closed hours, expires exactly, preserves service date', async () => {
+ const {getOrderingWindow}=await import('./ordering-window.mjs');
+ const now=new Date('2026-11-27T14:00:00Z');
+ assert.equal(getOrderingWindow(now).open,false);
+ assert.equal(getOrderingWindow(now,'2026-11-27T15:00:00Z').open,true);
+ assert.equal(getOrderingWindow(now,'2026-11-27T15:00:00Z').serviceDate,'2026-11-28');
+ assert.equal(getOrderingWindow(now,now.toISOString()).open,false);
+ assert.equal(getOrderingWindow(now,'invalid').overrideUntil,null);
+});

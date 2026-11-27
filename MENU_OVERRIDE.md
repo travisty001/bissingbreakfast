@@ -1,0 +1,2 @@
+# Menu hours override
+Normal is the default when no settings document exists or the override expires. Configure a strong shared staff password using `firebase functions:secrets:set MENU_OVERRIDE_PASSWORD` before deploying. Do not commit the password. Deploy the API and hosting together after tests/build. The dashboard offers normal, one hour, and custom expiry (up to 31 days). All room menus share the same Firestore setting. The service date stays the following morning in Hays even during an override. Guest pages refresh every ten seconds. No alert code changes.

@@ -33,7 +33,7 @@ export default function GuestOrderingApp() {
 
         const tick = () => {
             const clock = serverClock.current;
-            if (alive && clock) setOrdering(getOrderingWindow(new Date(clock.time + performance.now() - clock.at)));
+            if (alive && clock) setOrdering(getOrderingWindow(new Date(clock.time + performance.now() - clock.at), clock.overrideUntil));
         };
         const sync = async () => {
             try {
@@ -43,7 +43,7 @@ export default function GuestOrderingApp() {
                 const time = Date.parse(status.serverNow);
                 if (!Number.isFinite(time) || typeof status.open !== 'boolean') throw new Error('Invalid ordering status');
                 if (!alive) return;
-                serverClock.current = { time, at: performance.now() };
+                serverClock.current = { time, at: performance.now(), overrideUntil: status.overrideUntil };
                 setOrderingUnavailable(false);
                 tick();
             } catch {
@@ -52,7 +52,7 @@ export default function GuestOrderingApp() {
         };
         sync();
         const ticker = setInterval(tick, 1000);
-        const refresh = setInterval(sync, 60000);
+        const refresh = setInterval(sync, 10000);
         const onVisible = () => { if (!document.hidden) { tick(); sync(); } };
         document.addEventListener('visibilitychange', onVisible);
         return () => { alive = false; clearInterval(ticker); clearInterval(refresh); document.removeEventListener('visibilitychange', onVisible); };
@@ -305,7 +305,7 @@ export default function GuestOrderingApp() {
         .then(async res => {
             const data = await res.json();
             if (data.code === 'ORDERING_CLOSED') {
-                serverClock.current = { time: Date.parse(data.ordering.serverNow), at: performance.now() };
+                serverClock.current = { time: Date.parse(data.ordering.serverNow), at: performance.now(), overrideUntil: data.ordering.overrideUntil };
                 setOrdering(data.ordering);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return data;

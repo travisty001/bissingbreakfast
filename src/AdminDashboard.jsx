@@ -46,6 +46,43 @@ const getLocalDateString = () => {
 };
 
 export default function AdminDashboard() {
+  const [windowStatus, setWindowStatus] = useState(null);
+  const [overrideMode, setOverrideMode] = useState('normal');
+  const [overrideUntil, setOverrideUntil] = useState('');
+  const [overrideMessage, setOverrideMessage] = useState('');
+  const [overrideBusy, setOverrideBusy] = useState(false);
+  const refreshWindow = async () => {
+    try {
+      const response = await fetch(API_BASE.replace('/admin', '') + '/ordering-window', {cache: 'no-store'});
+      if (!response.ok) throw new Error();
+      setWindowStatus(await response.json());
+    } catch { setWindowStatus(null); }
+  };
+  useEffect(() => {
+    refreshWindow();
+    const timer = setInterval(refreshWindow, 10000);
+    return () => clearInterval(timer);
+  }, []);
+  const applyOverride = async () => {
+    if (overrideMode === 'custom' && (!overrideUntil || !Number.isFinite(Date.parse(overrideUntil)) || Date.parse(overrideUntil) <= Date.now())) {
+      setOverrideMessage('Choose a future date and time.'); return;
+    }
+    const password = window.prompt('Staff menu override password');
+    if (!password) return;
+    setOverrideBusy(true);
+    setOverrideMessage('');
+    try {
+      const response = await fetch(API_BASE + '/ordering-window', {
+        method: 'POST', headers: {'Content-Type': 'application/json', 'X-Menu-Password': password},
+        body: JSON.stringify({mode: overrideMode, until: overrideMode === 'custom' ? new Date(overrideUntil).toISOString() : null})
+      });
+      const status = await response.json();
+      if (!response.ok) throw new Error(status.error || 'Unable to update hours.');
+      setWindowStatus(status);
+      setOverrideMessage('Menu hours updated.');
+    } catch (error) { setOverrideMessage(error.message); }
+    finally { setOverrideBusy(false); }
+  };
   const [selectedDate, setSelectedDate] = useState(getLocalDateString);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +228,21 @@ export default function AdminDashboard() {
 
         </div>
       </header>
+      <details className="mx-6 mt-3 p-3 rounded-md border border-[#49313e] bg-[#150e12]">
+        <summary className="cursor-pointer font-semibold">Menu hours · {windowStatus ? (windowStatus.overrideUntil ? 'Override active' : 'Normal schedule') : 'Status unavailable'}</summary>
+        <p className="my-2 text-sm">Normal hours: 3 PM–11 PM (Hays time). {windowStatus?.overrideUntil && 'Open until ' + new Date(windowStatus.overrideUntil).toLocaleString('en-US', {timeZone:'America/Chicago'}) + ' Central.'} {windowStatus && 'Currently ' + (windowStatus.open ? 'open' : 'closed') + '.'}</p>
+        <div className="flex flex-wrap gap-2 items-center">
+          <select aria-label="Menu override mode" className="bg-[#23151b] p-2 rounded" value={overrideMode} onChange={e => setOverrideMode(e.target.value)}>
+            <option value="normal">Restore normal hours</option>
+            <option value="hour">Open for one hour</option>
+            <option value="custom">Open until date and time</option>
+          </select>
+          {overrideMode === 'custom' && <label className="text-sm">End time (device local) <input type="datetime-local" value={overrideUntil} onChange={e=>setOverrideUntil(e.target.value)} className="bg-[#23151b] p-2 rounded [color-scheme:dark]" /></label>}
+          <button type="button" disabled={overrideBusy} onClick={applyOverride} className="bg-[#593649] px-4 py-2 rounded">{overrideBusy ? 'Saving…' : 'Apply'}</button>
+        </div>
+        <p role="status" className="text-sm mt-2">{overrideMessage}</p>
+        <p className="text-xs mt-2">Orders remain for the following morning, including during overrides.</p>
+      </details>
 
       <div className="px-6 py-4 text-sm text-[#a39aa2] shrink-0">
         {sortedGroups.length} order{sortedGroups.length === 1 ? '' : 's'} scheduled
