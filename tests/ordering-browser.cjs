@@ -59,6 +59,7 @@ const assert = require('node:assert/strict');
             const current = await scenario('2026-11-09T02:00:00Z','Asia/Tokyo');
             await current.page.getByRole('button',{name:'1 person',exact:true}).click();
             await current.page.locator('select').first().selectOption('Continental');
+            await current.page.getByRole('button',{name:'Review breakfast',exact:true}).click();
             if (rejection) current.reject();
             await current.page.getByRole('button',{name:'Submit Continental Breakfast Request'}).click();
             await current.page.waitForTimeout(1000);
