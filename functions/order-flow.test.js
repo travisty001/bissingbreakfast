@@ -12,9 +12,11 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
     const messages = [];
     let telegramThrows = false;
     const docs = [];
+    let override = {};
     const fakeDb = {
         settings() {},
         collection(name) {
+            if (name === 'settings') return { doc: () => ({ get: async () => ({ data: () => override }), set: async value => { override = value; } }) };
             assert.equal(name, 'orders');
             return {
                 where() { return { get: async () => ({ docs: docs.map(d => ({
@@ -44,7 +46,7 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
         }
     }) };
     const fakeFunctions = { https: { onRequest: (options, app) => {
-        assert.deepEqual(options.secrets, ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_IDS']);
+        assert.deepEqual(options.secrets.map(String), ['TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_IDS', 'MENU_OVERRIDE_PASSWORD']);
         return app;
     } } };
     const fakeTelegram = {
@@ -58,7 +60,7 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
         if (parent && parent.filename.endsWith('/functions/index.js')) {
             if (request === 'firebase-admin') return fakeAdmin;
             if (request === 'firebase-functions') return fakeFunctions;
-            if (request === 'firebase-functions/params') return { defineSecret: name => name };
+            if (request === 'firebase-functions/params') return { defineSecret: name => name === 'MENU_OVERRIDE_PASSWORD' ? Object.assign(new String(name), {value: () => 'test-only-password'}) : name };
             if (request === 'sqlite3') return fakeSqlite;
             if (request === './telegram') return fakeTelegram;
         }
@@ -135,5 +137,17 @@ test('new and replacement orders preserve Telegram and disable legacy SMS even o
             body: JSON.stringify({room_id: 1, service_date: '2026-11-08', requested_time: '10:00'}) });
         assert.equal(stale.status, 400);
         assert.equal(messages.length, 4);
+        t.mock.timers.setTime(new Date('2026-11-08T18:00:00Z').getTime());
+        const adminEndpoint = endpoint.replace('/orders', '/admin/ordering-window');
+        const apply = (mode, password) => fetch(adminEndpoint, {method:'POST', headers:{'content-type':'application/json','X-Menu-Password':password},body:JSON.stringify({mode})});
+        assert.equal((await apply('hour','wrong')).status,403);
+        const opened = await apply('hour','test-only-password');
+        assert.equal(opened.status,200);
+        assert.equal((await opened.json()).open,true);
+        assert.equal((await fetch(endpoint.replace('/orders','/menu'))).status,200);
+        const closed = await apply('normal','test-only-password');
+        assert.equal(closed.status,200);
+        assert.equal((await closed.json()).open,false);
+        assert.equal((await fetch(endpoint.replace('/orders','/menu'))).status,403);
     } finally { await new Promise(resolve => server.close(resolve)); }
 });
